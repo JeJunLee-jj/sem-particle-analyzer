@@ -187,7 +187,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
         <div class="bd ctrl-group">
           <div class="drop" id="s-drop" role="button" tabindex="0">
             <b>SEM 이미지 올리기</b>
-            클릭 · 드래그 · 붙여넣기(Ctrl+V)
+            클릭 · 드래그 · 이 화면에서 Ctrl+V
           </div>
           <input type="file" id="s-file" accept="image/*" hidden>
           <div id="s-fileinfo" class="mono" style="font-size:11px;color:var(--ink-3)"></div>
@@ -383,7 +383,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
             <p class="lede" style="margin-bottom:12px">원소별 맵 이미지(Fe map, Si map …)를 한꺼번에 올리면, 형상 탭에서 찾은 입자마다 각 맵의 평균 세기를 재서 조성을 추정하고 <b>자동으로 붙입니다</b>. 맵은 SEM 이미지와 같은 시야여야 합니다.</p>
             <div class="drop" id="m-drop" role="button" tabindex="0">
               <b>원소 맵 이미지 올리기 (여러 장 한 번에)</b>
-              파일명에서 원소를 추측합니다 — 예: Fe.png, map_Si_K.jpg
+              클릭 · 드래그 · 이 화면에서 Ctrl+V · 파일명에서 원소를 추측합니다 (예: Fe.png, map_Si_K.jpg)
             </div>
             <input type="file" id="m-file" accept="image/*" multiple hidden>
             <div id="m-list" style="margin-top:12px"></div>
@@ -409,7 +409,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
             <p class="lede" style="margin-bottom:12px">정량표가 찍힌 사진을 올리세요. Claude가 원소와 wt%를 읽어 옮기고, 읽기가 안 되는 화면에서도 사진을 띄워놓고 아래 <b>조성 값 편집</b>에 직접 입력할 수 있습니다.</p>
             <div class="drop" id="e-drop" role="button" tabindex="0">
               <b>EDS 정량표 사진 올리기</b>
-              클릭 · 드래그 · 붙여넣기
+              클릭 · 드래그 · 이 화면에서 Ctrl+V
             </div>
             <input type="file" id="e-file" accept="image/*" hidden>
             <div id="e-photo-area" hidden style="margin-top:14px">
@@ -1404,17 +1404,66 @@ fileInput.addEventListener("change",function(e){ handleFile(e.target.files[0]); 
   drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); });
 });
 drop.addEventListener("drop",function(e){ handleFile(e.dataTransfer.files[0]); });
-window.addEventListener("paste",function(e){
-  var items=e.clipboardData && e.clipboardData.items;
-  if (!items) return;
-  for (var i=0;i<items.length;i++){
-    if (items[i].type.indexOf("image")===0){
-      // 조성 탭의 사진 경로를 보고 있으면 그쪽으로, 아니면 SEM 이미지로 보낸다
-      if (photoRouteActive()) setPhoto(items[i].getAsFile());
-      else handleFile(items[i].getAsFile());
-      break;
-    }
+/* 이미지가 어디로 들어갈지는 "지금 보고 있는 화면"이 정한다.
+   예전에는 조성 탭에 있어도 붙여넣은 이미지가 SEM 이미지를 덮어썼다. */
+function currentImageTarget(){
+  if (!document.getElementById("p-s").hidden) return "sem";
+  if (!document.getElementById("p-e").hidden){
+    var r = document.querySelector('.seg button[data-route][aria-pressed="true"]');
+    var route = r ? r.dataset.route : "";
+    if (route === "photo") return "eds";
+    if (route === "map") return "map";
+    return "table";
   }
+  return "none";
+}
+var toastEl = null, toastTimer = null;
+function toast(html, ms){
+  if (!toastEl){
+    toastEl = document.createElement("div");
+    toastEl.setAttribute("role", "status");
+    toastEl.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);" +
+      "bottom:calc(20px + env(safe-area-inset-bottom, 0px));z-index:90;max-width:min(520px,calc(100vw - 32px));" +
+      "background:var(--chrome);color:#fff;font-size:12.5px;line-height:1.5;padding:10px 14px;" +
+      "border-radius:5px;box-shadow:0 8px 28px -8px rgba(0,0,0,.55);opacity:0;transition:opacity .14s";
+    document.body.appendChild(toastEl);
+  }
+  toastEl.innerHTML = html;
+  toastEl.style.opacity = "1";
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.style.opacity = "0"; }, ms || 4200);
+}
+function routeImage(file, how){
+  var t = currentImageTarget();
+  if (t === "sem"){ handleFile(file); return; }
+  if (t === "eds"){ setPhoto(file); toast("EDS 화면 사진으로 넣었습니다. SEM 이미지는 그대로입니다."); return; }
+  if (t === "map"){ addMapFiles([file]); toast("원소 맵으로 넣었습니다. SEM 이미지는 그대로입니다."); return; }
+  if (t === "table"){
+    toast("이미지는 <b>EDS 화면 사진</b>이나 <b>원소 맵 이미지</b> 경로에서 받습니다. 위에서 경로를 바꾼 뒤 다시 " + how + "해 주세요.");
+    return;
+  }
+  toast("이미지를 받는 화면이 아닙니다. <b>형상</b> 탭이면 SEM 이미지로, <b>조성</b> 탭이면 EDS 사진이나 원소 맵으로 들어갑니다.");
+}
+window.addEventListener("paste", function(e){
+  var items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  var file = null;
+  for (var i = 0; i < items.length; i++){
+    if (items[i].type.indexOf("image") === 0){ file = items[i].getAsFile(); break; }
+  }
+  if (!file) return;   // 정량표 텍스트 붙여넣기는 건드리지 않는다
+  routeImage(file, "붙여넣기");
+});
+/* 점선 상자 밖에 파일을 놓으면 브라우저가 그 파일로 이동해 버려서
+   분석 결과와 누적되지 않은 작업이 통째로 날아간다. 그것부터 막는다. */
+["dragover", "drop"].forEach(function(ev){
+  window.addEventListener(ev, function(e){
+    if (e.target && e.target.closest && e.target.closest(".drop")) return;
+    e.preventDefault();
+    if (ev !== "drop") return;
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length) toast("점선 상자 안에 놓아 주세요. 어디에 넣을지 알 수 없어 그냥 두었습니다.");
+  });
 });
 document.getElementById("s-example").addEventListener("click",function(){
   loadImage("example-sem.png","합성 예제 SEM 필드",true);
