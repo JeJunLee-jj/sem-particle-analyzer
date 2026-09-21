@@ -1,0 +1,2099 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root{
+    color-scheme: light;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body{ margin:0; font: 14px system-ui, sans-serif; background:#fafaf9; }
+  img{ max-width:100%; }
+  [hidden]{ display:none !important; }
+</style>
+<title>SEM 입자 분석기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#e9ecef; --surface:#ffffff; --surface-2:#f4f6f7; --surface-3:#eceff1;
+  --ink:#131a20; --ink-2:#4d5a65; --ink-3:#7c8a95;
+  --line:#d5dbe0; --line-2:#c2cad1;
+  --chrome:#25313b; --chrome-ink:#e7edf1;
+  --accent:#a8421f; --accent-soft:#f5e3dc;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s7:#4a3aa7;
+  --neutral:#9aa6b0;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --grid:#e4e9ed;
+  --shadow:0 1px 2px rgba(19,26,32,.06),0 8px 24px -12px rgba(19,26,32,.18);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans KR","IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1115; --surface:#161c22; --surface-2:#1b2229; --surface-3:#212a32;
+    --ink:#e7edf2; --ink-2:#a3b1bd; --ink-3:#77858f;
+    --line:#2a333c; --line-2:#3a444e;
+    --chrome:#0a0e12; --chrome-ink:#dce5ec;
+    --accent:#e07a52; --accent-soft:#2e1d16;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s7:#9085e9;
+    --neutral:#6a7681;
+    --grid:#242d36;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1115; --surface:#161c22; --surface-2:#1b2229; --surface-3:#212a32;
+  --ink:#e7edf2; --ink-2:#a3b1bd; --ink-3:#77858f;
+  --line:#2a333c; --line-2:#3a444e;
+  --chrome:#0a0e12; --chrome-ink:#dce5ec;
+  --accent:#e07a52; --accent-soft:#2e1d16;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s7:#9085e9;
+  --neutral:#6a7681;
+  --grid:#242d36;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--chrome);color:var(--chrome-ink);border-bottom:1px solid rgba(255,255,255,.08)}
+.top-in{max-width:1320px;margin:0 auto;padding:14px 20px 0;display:flex;flex-direction:column;gap:12px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+.brand h1{font-size:17px;letter-spacing:-.02em}
+.brand .sub{font-size:12px;color:rgba(231,237,241,.62);font-family:var(--mono)}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{appearance:none;background:transparent;border:0;border-bottom:2px solid transparent;color:rgba(231,237,241,.6);font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 13px;cursor:pointer;white-space:nowrap}
+nav.tabs button:hover{color:var(--chrome-ink)}
+nav.tabs button[aria-selected="true"]{color:#fff;border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+main{max-width:1320px;margin:0 auto;padding-block:22px 64px;padding-left:16px;padding-right:16px}
+@media(min-width:760px){main{padding-left:20px;padding-right:20px}}
+.layout{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
+@media(min-width:1040px){.layout{grid-template-columns:280px minmax(0,1fr)}}
+.rail{display:flex;flex-direction:column;gap:14px}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow)}
+.panel>.hd{padding:13px 16px 11px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.panel>.hd h2{font-size:14px}
+.panel>.hd .note{font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+.panel>.bd{padding:16px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.lede{color:var(--ink-2);font-size:13px;max-width:70ch}
+
+.ctrl-group{display:flex;flex-direction:column;gap:13px}
+.ctrl{display:flex;flex-direction:column;gap:5px}
+.ctrl .lab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--ink-2)}
+.ctrl .lab b{font-family:var(--mono);font-weight:500;font-size:12px;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{appearance:none;width:100%;height:18px;background:transparent;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line-2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line-2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;margin-top:-5px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+input[type=range]:focus-visible,input[type=number]:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=number],select,textarea{font-family:var(--mono);font-size:12.5px;padding:6px 8px;border:1px solid var(--line-2);border-radius:4px;background:var(--surface);color:var(--ink);width:100%}
+textarea{font-size:12px;line-height:1.5;resize:vertical;min-height:110px}
+label.chk{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink-2);cursor:pointer}
+.btn{appearance:none;font-family:var(--sans);font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:4px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--ink-3);color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--chrome);border-color:var(--chrome);color:#fff}
+.btn.primary:hover:not(:disabled){opacity:.9;color:#fff}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:4px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--surface-2);color:var(--ink-2);font-family:var(--sans);font-size:11.5px;padding:5px 10px;cursor:pointer;border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--chrome);color:#fff}
+
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+@media(min-width:760px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:13px 15px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.kpi .t{font-size:11.5px;color:var(--ink-3)}
+.kpi .v{font-family:var(--mono);font-size:23px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi .v small{font-size:12.5px;color:var(--ink-2);font-weight:400}
+.kpi .d{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+
+.drop{border:1.5px dashed var(--line-2);border-radius:6px;padding:18px 14px;text-align:center;color:var(--ink-3);font-size:12.5px;cursor:pointer;background:var(--surface-2);transition:border-color .12s,background .12s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--ink-2)}
+.drop b{display:block;color:var(--ink);font-size:13px;font-weight:600;margin-bottom:3px}
+.canvaswrap{position:relative;width:100%;border:1px solid var(--line-2);border-radius:4px;overflow:hidden;background:#000}
+.canvaswrap canvas{display:block;width:100%;height:auto}
+.canvaswrap.calib{cursor:crosshair}
+.badge-sample{position:absolute;top:8px;left:8px;background:rgba(10,14,18,.78);color:#fff;font-family:var(--mono);font-size:10.5px;padding:3px 7px;border-radius:3px;letter-spacing:.03em}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--ink-2);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:9px;height:9px;border-radius:2px;flex:none;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}
+th{font-size:11px;font-weight:500;color:var(--ink-3);letter-spacing:.03em;text-transform:uppercase;font-family:var(--mono);cursor:pointer;white-space:nowrap}
+th.plain{cursor:default}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tbody tr.sel{background:var(--accent-soft)}
+tbody tr{cursor:pointer}
+.scroll-x{overflow-x:auto}
+.scroll-y{max-height:340px;overflow-y:auto}
+.callout{border-left:2px solid var(--accent);background:var(--accent-soft);padding:11px 14px;border-radius:0 4px 4px 0;font-size:12.5px;color:var(--ink)}
+.flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:3px}
+.flag.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.flag.bad{background:color-mix(in srgb,var(--critical) 14%,transparent);color:var(--critical)}
+.flag.warn{background:color-mix(in srgb,var(--serious) 18%,transparent);color:var(--serious)}
+svg{display:block;max-width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--mono);fill:var(--ink-2)}
+.tip{position:fixed;z-index:80;pointer-events:none;background:var(--chrome);color:#fff;font-size:11.5px;font-family:var(--mono);padding:6px 9px;border-radius:4px;box-shadow:0 6px 20px -6px rgba(0,0,0,.5);opacity:0;transition:opacity .09s;max-width:260px;line-height:1.45}
+.tip.on{opacity:1}
+.tip .hl{font-weight:600}
+.two{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:900px){.two{grid-template-columns:1fr 1fr}}
+.busy{position:fixed;inset:0;background:rgba(10,14,18,.55);display:flex;align-items:center;justify-content:center;z-index:70;color:#fff;font-family:var(--mono);font-size:13px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>SEM 입자 분석기</h1>
+      <span class="sub">직접 찍은 사진 → 분할 · 형상지표 · 조성 분류</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="분석 종류">
+      <button role="tab" id="tab-s" aria-controls="p-s" aria-selected="true">형상 · SEM 이미지</button>
+      <button role="tab" id="tab-e" aria-controls="p-e" aria-selected="false">조성 · EDS</button>
+      <button role="tab" id="tab-u" aria-controls="p-u" aria-selected="false">통합 결과</button>
+      <button role="tab" id="tab-d" aria-controls="p-d" aria-selected="false">누적 데이터</button>
+      <button role="tab" id="tab-r" aria-controls="p-r" aria-selected="false">결과 정리</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ================= SHAPE ================= -->
+<section id="p-s" role="tabpanel" aria-labelledby="tab-s">
+  <div class="layout">
+    <aside class="rail">
+      <div class="panel">
+        <div class="hd"><h2>사진</h2></div>
+        <div class="bd ctrl-group">
+          <div class="drop" id="s-drop" role="button" tabindex="0">
+            <b>SEM 이미지 올리기</b>
+            클릭 · 드래그 · 붙여넣기(Ctrl+V)
+          </div>
+          <input type="file" id="s-file" accept="image/*" hidden>
+          <div id="s-fileinfo" class="mono" style="font-size:11px;color:var(--ink-3)"></div>
+          <button class="btn" id="s-example" type="button">예제 이미지로 되돌리기</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hd"><h2>분할 조건</h2></div>
+        <div class="bd ctrl-group">
+          <label class="chk"><input type="checkbox" id="s-bright" checked> 입자가 배경보다 밝음</label>
+          <label class="chk"><input type="checkbox" id="s-auto" checked> Otsu 자동 임계</label>
+          <div class="ctrl">
+            <div class="lab"><label for="s-thr">임계 (0–255)</label><b id="s-thr-v">—</b></div>
+            <input type="range" id="s-thr" min="1" max="254" step="1" value="110" disabled>
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-sigma">가우시안 σ</label><b id="s-sigma-v">1.5</b></div>
+            <input type="range" id="s-sigma" min="0" max="5" step="0.1" value="1.5">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-min">최소 면적 (px)</label><b id="s-min-v">60</b></div>
+            <input type="range" id="s-min" min="5" max="600" step="5" value="60">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-split">접촉 분리 강도</label><b id="s-split-v">1.00</b></div>
+            <input type="range" id="s-split" min="0.3" max="1" step="0.02" value="1">
+          </div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:-6px">1.00 = 분리 안 함. 낮출수록 맞닿은 입자를 적극적으로 쪼갭니다.</div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-crop">하단 정보바 제외</label><b id="s-crop-v">0%</b></div>
+            <input type="range" id="s-crop" min="0" max="0.3" step="0.01" value="0">
+          </div>
+          <label class="chk"><input type="checkbox" id="s-fill" checked> 내부 구멍 채우기</label>
+          <label class="chk"><input type="checkbox" id="s-border" checked> 화면 가장자리에 걸친 입자 제외</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hd"><h2>형상 분류 임계</h2></div>
+        <div class="bd ctrl-group">
+          <div class="ctrl">
+            <div class="lab"><label for="s-ar">① 종횡비 ≥ → 침상</label><b id="s-ar-v">2.80</b></div>
+            <input type="range" id="s-ar" min="1.5" max="4.5" step="0.05" value="2.8">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-sol">② 고형도 &lt; → 응집형</label><b id="s-sol-v">0.72</b></div>
+            <input type="range" id="s-sol" min="0.45" max="0.98" step="0.01" value="0.72">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-circ">③ 원형도 ≥ → 구형</label><b id="s-circ-v">0.80</b></div>
+            <input type="range" id="s-circ" min="0.5" max="0.98" step="0.01" value="0.8">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="s-arsph">③ 그리고 종횡비 &lt;</label><b id="s-arsph-v">1.30</b></div>
+            <input type="range" id="s-arsph" min="1.02" max="2" step="0.01" value="1.3">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hd"><h2>스케일 보정</h2><span class="note" id="s-scale-note">미보정</span></div>
+        <div class="bd ctrl-group">
+          <button class="btn" id="s-calib" type="button">이미지 위에 스케일바 긋기</button>
+          <div class="ctrl">
+            <div class="lab"><label for="s-len">그은 길이에 해당하는 실제 거리</label></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" id="s-len" min="0.001" step="0.1" placeholder="예: 10" style="flex:1">
+              <select id="s-unit" style="width:78px"><option value="1">µm</option><option value="0.001">nm</option><option value="1000">mm</option></select>
+            </div>
+          </div>
+          <div id="s-calib-state" style="font-size:11.5px;color:var(--ink-3)">보정 전에는 모든 길이가 px 단위입니다.</div>
+          <button class="btn" id="s-calib-clear" type="button">보정 지우기</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="kpis" id="s-kpis"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:-6px">
+        <button class="btn primary" id="s-save-field" type="button">이 시야를 누적에 저장</button>
+        <span id="s-save-state" style="font-size:12px;color:var(--ink-3)"></span>
+      </div>
+
+      <div class="panel">
+        <div class="hd">
+          <h2>분할 결과</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="seg" role="group" aria-label="표시 방식">
+              <button type="button" data-view="overlay" aria-pressed="true">원본+윤곽</button>
+              <button type="button" data-view="mask" aria-pressed="false">이진 마스크</button>
+              <button type="button" data-view="plain" aria-pressed="false">원본만</button>
+            </div>
+            <label class="chk"><input type="checkbox" id="s-num"> 번호</label>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="canvaswrap" id="s-wrap"><canvas id="s-canvas"></canvas><div class="badge-sample" id="s-badge">합성 예제 — 내 사진을 올리면 교체됩니다</div></div>
+          <div class="legend" id="s-legend" style="margin-top:12px"></div>
+          <div id="s-detail" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="panel">
+          <div class="hd"><h2>크기 분포</h2><span class="note" id="s-hist-unit">등가원 지름 (px)</span></div>
+          <div class="bd"><div id="s-hist"></div></div>
+        </div>
+        <div class="panel">
+          <div class="hd"><h2>형상 지표 공간</h2><span class="note">고형도 × 원형도</span></div>
+          <div class="bd"><div id="s-scatter"></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hd">
+          <h2>입자별 측정값</h2>
+          <div class="btnrow"><button class="btn" id="s-csv" type="button" hidden>CSV로 저장</button></div>
+        </div>
+        <div class="bd">
+          <div class="scroll-x scroll-y"><table id="s-table"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= EDS ================= -->
+<section id="p-e" role="tabpanel" aria-labelledby="tab-e" hidden>
+  <div class="layout">
+    <aside class="rail">
+      <div class="panel">
+        <div class="hd"><h2>정량 기준</h2></div>
+        <div class="bd ctrl-group">
+          <div class="seg" role="group" aria-label="정량 기준" style="width:100%">
+            <button type="button" data-basis="metal" aria-pressed="true" style="flex:1">금속기준 (C·O 제외)</button>
+            <button type="button" data-basis="total" aria-pressed="false" style="flex:1">전체기준</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--ink-3)">같은 스펙트럼도 어느 기준으로 정규화했는지에 따라 Fe 값이 30%p 이상 벌어집니다. 임계값은 반드시 기준과 함께 기록하세요.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h2>규칙 임계</h2><span class="note">wt%</span></div>
+        <div class="bd ctrl-group">
+          <div class="eyebrow">v1 · 단일원소</div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-v1">Fe·Al·Ti 공통</label><b id="e-v1-v">40</b></div>
+            <input type="range" id="e-v1" min="10" max="70" step="1" value="40">
+          </div>
+          <div class="eyebrow" style="margin-top:4px">v2 · 계층형</div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-c">C ≥</label><b id="e-c-v">55</b></div>
+            <input type="range" id="e-c" min="20" max="80" step="1" value="55">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-fe">Fe ≥</label><b id="e-fe-v">40</b></div>
+            <input type="range" id="e-fe" min="15" max="80" step="1" value="40">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-sial1">Si+Al &lt;</label><b id="e-sial1-v">30</b></div>
+            <input type="range" id="e-sial1" min="5" max="60" step="1" value="30">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-ti">Ti ≥</label><b id="e-ti-v">40</b></div>
+            <input type="range" id="e-ti" min="15" max="80" step="1" value="40">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-sial2">Si+Al ≥</label><b id="e-sial2-v">50</b></div>
+            <input type="range" id="e-sial2" min="20" max="80" step="1" value="50">
+          </div>
+          <div class="ctrl">
+            <div class="lab"><label for="e-ca">Ca ≥</label><b id="e-ca-v">40</b></div>
+            <input type="range" id="e-ca" min="15" max="80" step="1" value="40">
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="panel">
+        <div class="hd"><h2>EDS 정량값 넣기</h2><span class="note">사진만으로는 원소를 알 수 없습니다</span></div>
+        <div class="bd">
+          <div class="callout" style="margin-bottom:14px">
+            원소 정보는 X선 스펙트럼에서만 나옵니다. 전자현미경 사진 자체에는 들어 있지 않으므로, 아래 셋 중 하나로 EDS 결과를 함께 넣어야 입자별 조성까지 한 번에 나옵니다.
+          </div>
+          <div class="seg" role="group" aria-label="입력 방식" style="margin-bottom:16px">
+            <button type="button" data-route="map" aria-pressed="true">원소 맵 이미지</button>
+            <button type="button" data-route="paste" aria-pressed="false">정량표 붙여넣기</button>
+            <button type="button" data-route="photo" aria-pressed="false">EDS 화면 사진</button>
+          </div>
+
+          <div id="route-map">
+            <p class="lede" style="margin-bottom:12px">원소별 맵 이미지(Fe map, Si map …)를 한꺼번에 올리면, 형상 탭에서 찾은 입자마다 각 맵의 평균 세기를 재서 조성을 추정하고 <b>자동으로 붙입니다</b>. 맵은 SEM 이미지와 같은 시야여야 합니다.</p>
+            <div class="drop" id="m-drop" role="button" tabindex="0">
+              <b>원소 맵 이미지 올리기 (여러 장 한 번에)</b>
+              파일명에서 원소를 추측합니다 — 예: Fe.png, map_Si_K.jpg
+            </div>
+            <input type="file" id="m-file" accept="image/*" multiple hidden>
+            <div id="m-list" style="margin-top:12px"></div>
+            <div class="btnrow" style="margin-top:12px">
+              <button class="btn primary" id="m-run" type="button" disabled>입자별 조성 계산</button>
+              <button class="btn" id="m-clear" type="button">맵 비우기</button>
+            </div>
+            <div class="callout" style="margin-top:14px;border-left-color:var(--serious)">
+              <b>반정량 추정입니다.</b> 맵 세기가 농도에 비례한다고 본 값이라 ZAF 보정·표준시료를 거친 정량값이 아닙니다. 수치 자체보다 입자 사이의 상대 비교에 쓰고, 보고할 때는 반드시 "맵 세기 기반 추정"이라고 밝히세요.
+            </div>
+          </div>
+
+          <div id="route-paste" hidden>
+            <p class="lede" style="margin-bottom:12px">계측 소프트웨어나 엑셀에서 표를 복사해 그대로 붙여넣으세요. 원소가 세로로 있는 표, 원소가 가로 머리글인 다지점 표 둘 다 읽습니다.</p>
+            <textarea id="e-paste" spellcheck="false" placeholder="Element&#9;Weight%&#10;C&#9;8.12&#10;O&#9;27.43&#10;Fe&#9;52.31&#10;Si&#9;6.02&#10;Al&#9;2.10&#10;&#10;— 또는 —&#10;&#10;Spectrum&#9;C&#9;O&#9;Fe&#9;Si&#9;Al&#10;Point 1&#9;8.1&#9;27.4&#9;52.3&#9;6.0&#9;2.1&#10;Point 2&#9;9.4&#9;44.8&#9;7.2&#9;24.1&#9;9.9"></textarea>
+            <div class="btnrow" style="margin-top:10px">
+              <button class="btn primary" id="e-parse" type="button">표 읽기</button>
+              <button class="btn" id="e-clear" type="button">지우기</button>
+            </div>
+          </div>
+
+          <div id="route-photo" hidden>
+            <p class="lede" style="margin-bottom:12px">정량표가 찍힌 사진을 올리세요. Claude가 원소와 wt%를 읽어 옮기고, 읽기가 안 되는 화면에서도 사진을 띄워놓고 아래 <b>조성 값 편집</b>에 직접 입력할 수 있습니다.</p>
+            <div class="drop" id="e-drop" role="button" tabindex="0">
+              <b>EDS 정량표 사진 올리기</b>
+              클릭 · 드래그 · 붙여넣기
+            </div>
+            <input type="file" id="e-file" accept="image/*" hidden>
+            <div id="e-photo-area" hidden style="margin-top:14px">
+              <div class="two" style="align-items:start">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div class="eyebrow">올린 사진</div>
+                  <div style="border:1px solid var(--line-2);border-radius:4px;overflow:auto;background:var(--surface-3);max-height:420px">
+                    <img id="e-photo-img" alt="올린 EDS 정량표 사진" style="display:block;width:100%;height:auto">
+                  </div>
+                  <div class="btnrow">
+                    <button class="btn" id="e-photo-zoom" type="button">실제 크기로 보기</button>
+                    <button class="btn" id="e-photo-clear" type="button">사진 치우기</button>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div class="eyebrow">표 읽기</div>
+                  <div class="btnrow">
+                    <button class="btn primary" id="e-read" type="button">Claude로 표 읽기</button>
+                    <button class="btn" id="e-read-stop" type="button" hidden>중지</button>
+                  </div>
+                  <div id="e-ai-state" style="font-size:12px;color:var(--ink-3)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="e-parse-msg" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="e-link-panel" hidden>
+        <div class="hd"><h2>입자와 연결</h2><span class="note" id="e-link-note"></span></div>
+        <div class="bd">
+          <p class="lede">지점 스펙트럼을 어느 입자에서 땄는지 알려주면 형상과 조성이 한 줄로 합쳐집니다. <b>연결</b>을 누른 뒤 형상 탭 이미지에서 해당 입자를 클릭하세요.</p>
+          <div class="btnrow" style="margin:12px 0">
+            <button class="btn" id="e-autolink" type="button">이름 속 번호로 자동 연결</button>
+            <button class="btn" id="e-unlink" type="button">연결 모두 해제</button>
+          </div>
+          <div id="e-link-list"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="e-edit-panel" hidden>
+        <div class="hd"><h2>조성 값 편집</h2><span class="note" id="e-edit-note"></span></div>
+        <div class="bd">
+          <p class="lede" style="margin-bottom:12px">읽어온 값을 고치거나, 사진을 보면서 직접 입력하는 곳입니다. 입력한 wt%의 합이 100이 아니어도 됩니다 — 비율로 환산해 판정합니다.</p>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <label for="e-edit-spot" style="font-size:12px;color:var(--ink-2)">지점</label>
+            <select id="e-edit-spot" style="width:auto;min-width:150px"></select>
+            <input type="text" id="e-edit-name" placeholder="지점 이름" style="width:auto;min-width:130px">
+            <button class="btn" id="e-spot-add" type="button">지점 추가</button>
+            <button class="btn" id="e-spot-del" type="button">이 지점 삭제</button>
+          </div>
+          <div id="e-edit-rows"></div>
+          <div class="btnrow" style="margin-top:12px">
+            <button class="btn" id="e-row-add" type="button">원소 추가</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis" id="e-kpis" hidden></div>
+
+      <div class="panel" id="e-result-panel" hidden>
+        <div class="hd"><h2>지점별 판정</h2><span class="note" id="e-basis-note"></span></div>
+        <div class="bd">
+          <div class="scroll-x"><table id="e-table"></table></div>
+          <div class="legend" id="e-legend" style="margin-top:12px"></div>
+          <div class="btnrow" style="margin-top:14px"><button class="btn" id="e-csv" type="button" hidden>CSV로 저장</button></div>
+        </div>
+      </div>
+
+      <div class="panel" id="e-detail-panel" hidden>
+        <div class="hd"><h2>선택 지점 조성</h2><span class="note" id="e-detail-name"></span></div>
+        <div class="bd"><div id="e-detail"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= UNIFIED ================= -->
+<section id="p-u" role="tabpanel" aria-labelledby="tab-u" hidden>
+  <div class="stack">
+    <div class="kpis" id="u-kpis"></div>
+    <div class="panel">
+      <div class="hd"><h2>입자별 형상 + 조성</h2><span class="note" id="u-note"></span></div>
+      <div class="bd">
+        <div id="u-empty"></div>
+        <div class="scroll-x scroll-y"><table id="u-table"></table></div>
+        <div class="btnrow" style="margin-top:14px"><button class="btn" id="u-csv" type="button" hidden>통합 CSV로 저장</button></div>
+      </div>
+    </div>
+    <div class="panel" id="u-cross-panel" hidden>
+      <div class="hd"><h2>형상 × 조성 교차</h2><span class="note">조성이 붙은 입자만</span></div>
+      <div class="bd">
+        <p class="lede" style="margin-bottom:14px">막대 하나가 형상 분류 하나입니다. 내부 색은 그 형상으로 잡힌 입자들이 어떤 조성으로 판정됐는지를 보여줍니다 — 발생원마다 형상이 다른지 확인하는 자리입니다.</p>
+        <div id="u-cross"></div>
+        <div class="legend" id="u-cross-legend" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACCUMULATED ================= -->
+<section id="p-d" role="tabpanel" aria-labelledby="tab-d" hidden>
+  <div class="stack">
+    <div class="kpis" id="d-kpis"></div>
+
+    <div class="panel">
+      <div class="hd"><h2>저장된 시야</h2><span class="note" id="d-store-note"></span></div>
+      <div class="bd">
+        <div id="d-fields"></div>
+        <div class="btnrow" style="margin-top:14px">
+          <button class="btn" id="d-csv" type="button">누적 CSV 내보내기</button>
+          <button class="btn" id="d-import" type="button">누적 CSV 불러와 합치기</button>
+          <input type="file" id="d-import-file" accept=".csv,text/csv" hidden>
+          <button class="btn" id="d-clear" type="button">전부 지우기</button>
+        </div>
+        <div id="d-store-msg" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <div class="hd"><h2>합산 크기 분포</h2><span class="note" id="d-hist-note"></span></div>
+        <div class="bd"><div id="d-hist"></div></div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h2>시야별 형상 분포</h2><span class="note">시야 간 재현성</span></div>
+        <div class="bd"><div id="d-byfield"></div><div class="legend" id="d-byfield-legend" style="margin-top:12px"></div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="d-cross-panel" hidden>
+      <div class="hd"><h2>형상 × 조성 (전체 합산)</h2><span class="note" id="d-cross-note"></span></div>
+      <div class="bd">
+        <div id="d-cross"></div>
+        <div class="legend" id="d-cross-legend" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hd"><h2>쌓인 데이터로 임계값 다시 잡기</h2><span class="note">규칙 보정</span></div>
+      <div class="bd">
+        <p class="lede" style="margin-bottom:14px">지금 쓰는 임계값(종횡비 2.80 / 고형도 0.72 / 원형도 0.80)은 합성 데이터에서 나온 값입니다. 누적된 실제 입자들의 분포에서 골이 어디에 파이는지 찾아, 이 시료에 맞는 경계를 제안합니다.</p>
+        <div id="d-suggest"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hd"><h2>형상 군집</h2><span class="note">정답 없이 묶어보기</span></div>
+      <div class="bd">
+        <p class="lede" style="margin-bottom:12px">규칙을 걷어내고, 원형도·고형도·종횡비만으로 입자들이 몇 덩어리로 갈리는지 봅니다. 규칙이 만든 경계와 데이터가 실제로 갈리는 자리가 다르면, 규칙을 의심할 근거가 됩니다.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+          <label for="d-k" style="font-size:12px;color:var(--ink-2)">군집 수</label>
+          <select id="d-k" style="width:auto"><option>2</option><option>3</option><option selected>4</option><option>5</option></select>
+          <button class="btn" id="d-cluster" type="button">군집 나누기</button>
+        </div>
+        <div id="d-cluster-out"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REPORT ================= -->
+<section id="p-r" role="tabpanel" aria-labelledby="tab-r" hidden>
+  <div class="stack" style="max-width:1000px">
+    <div class="panel">
+      <div class="hd"><h2>측정 요약</h2></div>
+      <div class="bd"><div id="r-summary"></div></div>
+    </div>
+    <div class="panel">
+      <div class="hd"><h2>기록용 초안</h2><span class="note">Claude가 작성</span></div>
+      <div class="bd">
+        <p class="lede">위 측정값만 넘겨 실험 노트에 붙일 문단 초안을 받습니다. 수치는 페이지가 계산한 값 그대로이고, 해석 문장은 초안이니 검토 후 쓰세요.</p>
+        <div class="btnrow" style="margin-top:12px">
+          <button class="btn primary" id="r-draft" type="button">요약 문단 만들기</button>
+          <button class="btn" id="r-stop" type="button" hidden>중지</button>
+        </div>
+        <div id="r-draft-out" style="margin-top:14px;font-size:13px;color:var(--ink-2);white-space:pre-wrap"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="hd"><h2>이 페이지가 계산하는 방식</h2></div>
+      <div class="bd">
+        <div class="scroll-x"><table id="r-defs"></table></div>
+        <div class="callout" style="margin-top:14px">
+          모든 계산은 이 브라우저 안에서 돌아갑니다. 올린 사진은 기기 밖으로 나가지 않으며, 예외는 <b>방법 2(EDS 사진 읽기)</b>와 <b>요약 문단 만들기</b>뿐입니다 — 이 두 기능은 눌렀을 때만 Claude에게 내용을 보냅니다.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+<div class="busy" id="busy" hidden>분석 중…</div>
+
+<script src="ip.js"></script>
+<script>
+(function(){
+"use strict";
+var SVGNS="http://www.w3.org/2000/svg", tipEl=document.getElementById("tip");
+function el(t,a,k){var n=document.createElementNS(SVGNS,t);if(a)for(var q in a)n.setAttribute(q,a[q]);if(k)k.forEach(function(c){n.appendChild(c)});return n}
+function txt(s){return document.createTextNode(s)}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function fmt(v,d){return Number(v).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function showTip(e,html){tipEl.innerHTML=html;tipEl.classList.add("on");var r=tipEl.getBoundingClientRect();
+  var x=e.clientX+14,y=e.clientY+16;
+  if(x+r.width>innerWidth-8)x=e.clientX-r.width-14;
+  if(y+r.height>innerHeight-8)y=e.clientY-r.height-16;
+  tipEl.style.left=Math.max(8,x)+"px";tipEl.style.top=Math.max(8,y)+"px"}
+function hideTip(){tipEl.classList.remove("on")}
+function bindTip(node,fn){node.addEventListener("mousemove",function(e){showTip(e,fn())});node.addEventListener("mouseleave",hideTip)}
+function kpiHTML(t,v,unit,d){return '<div class="kpi"><div class="t">'+t+'</div><div class="v">'+v+(unit?'<small> '+unit+'</small>':'')+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'}
+
+var claudeNS = {sample:undefined, downloads:undefined};
+function useCap(name){
+  if (!window.claude || !window.claude.use) return Promise.resolve(null);
+  return window.claude.use(name).catch(function(){ return null; });
+}
+
+/* ================= SHAPE PANEL ================= */
+var CLS = ["구형","불규칙","침상","응집형"];
+var COL = {"구형":"--s1","불규칙":"--s2","침상":"--s3","응집형":"--s7"};
+var S = {
+  img:null, imgName:"", isExample:true,
+  sigma:1.5, minArea:60, splitFrac:1, cropBottom:0, thr:110, auto:true,
+  bright:true, fill:true, border:true,
+  ar:2.8, sol:0.72, circ:0.80, arsph:1.30,
+  view:"overlay", numbers:false, selected:null,
+  umPerPx:null, calibMode:false, calibPts:[], calibPx:0,
+  result:null
+};
+var MAXPIX = 3.2e6;
+
+var canvas=document.getElementById("s-canvas"), wrap=document.getElementById("s-wrap");
+var srcCanvas=document.createElement("canvas"), srcCtx=srcCanvas.getContext("2d", {willReadFrequently:true});
+
+function loadImage(src, name, isExample){
+  var im = new Image();
+  im.crossOrigin = "anonymous";
+  im.onload = function(){
+    var w=im.naturalWidth, h=im.naturalHeight, f=1;
+    if (w*h > MAXPIX) f = Math.sqrt(MAXPIX/(w*h));
+    var aw = Math.max(32, Math.round(w*f)), ah = Math.max(32, Math.round(h*f));
+    srcCanvas.width=aw; srcCanvas.height=ah;
+    srcCtx.drawImage(im, 0, 0, aw, ah);
+    S.img = srcCtx.getImageData(0,0,aw,ah);
+    S.imgName = name; S.isExample = !!isExample;
+    S.selected=null; S.calibPts=[];
+    document.getElementById("s-fileinfo").textContent =
+      name + " · " + w + "×" + h + "px" + (f<1 ? " (분석 해상도 " + aw + "×" + ah + ")" : "");
+    runShape();
+  };
+  im.onerror = function(){
+    document.getElementById("s-fileinfo").textContent = "이미지를 읽지 못했습니다.";
+  };
+  im.src = src;
+}
+
+function classify(p){
+  if (p.ar >= S.ar) return "침상";
+  if (p.sol < S.sol) return "응집형";
+  if (p.circ >= S.circ && p.ar < S.arsph) return "구형";
+  return "불규칙";
+}
+function runShape(){
+  if (!S.img) return;
+  var busy=document.getElementById("busy");
+  busy.hidden=false;
+  // rAF는 배경 탭에서 안 돌아 분석이 시작되지 않는다 — 타이머로만 양보한다.
+  setTimeout(function(){
+      try{
+        S.result = IP.analyze(S.img, {
+          sigma:S.sigma, autoThreshold:S.auto, threshold:S.thr, bright:S.bright,
+          fillHoles:S.fill, minArea:S.minArea, dropBorder:S.border,
+          splitFrac:S.splitFrac, cropBottom:S.cropBottom
+        });
+        S.result.props.forEach(function(p){ p.cls = classify(p); });
+        if (S.auto){
+          S.thr = S.result.threshold;
+          document.getElementById("s-thr").value = S.thr;
+        }
+        document.getElementById("s-thr-v").textContent = Math.round(S.result.threshold);
+        renderShape();
+      } catch(err){
+        console.error(err);
+        document.getElementById("s-fileinfo").textContent = "분석 중 오류가 났습니다: " + (err && err.message ? err.message : err);
+      } finally { busy.hidden=true; }
+  }, 30);
+}
+function reclassify(){
+  if (!S.result) return;
+  S.result.props.forEach(function(p){ p.cls = classify(p); });
+  renderShape();
+}
+
+function scaleVal(px, power){
+  if (S.umPerPx == null) return null;
+  return px * Math.pow(S.umPerPx, power||1);
+}
+function lenLabel(){ return S.umPerPx == null ? "px" : "µm"; }
+function lenOf(p){ return S.umPerPx == null ? p.eqd : p.eqd*S.umPerPx; }
+
+function renderShape(){
+  var R = S.result; if (!R) return;
+  var props = R.props, n = props.length;
+  var totalArea = props.reduce(function(a,p){ return a+p.area; },0);
+  var cov = totalArea/(R.W*R.H)*100;
+  var diams = props.map(lenOf).sort(function(a,b){return a-b});
+  var med = n ? diams[Math.floor(n/2)] : 0;
+  var counts = {}; CLS.forEach(function(c){counts[c]=0});
+  props.forEach(function(p){ counts[p.cls]++; });
+  var top = CLS.slice().sort(function(a,b){return counts[b]-counts[a]})[0];
+
+  document.getElementById("s-kpis").innerHTML =
+    kpiHTML("검출 입자", fmt(n), "개", "최소 " + S.minArea + "px 이상") +
+    kpiHTML("중앙 지름", n? med.toFixed(S.umPerPx==null?0:2):"—", lenLabel(), S.umPerPx==null ? "스케일 미보정" : (S.umPerPx*1000).toFixed(1)+" nm/px") +
+    kpiHTML("면적 점유율", cov.toFixed(1), "%", "분석 영역 대비") +
+    kpiHTML("최다 형상", n? top:"—", "", n? counts[top]+"개 · "+(counts[top]/n*100).toFixed(0)+"%" : "");
+
+  drawCanvas();
+  document.getElementById("s-badge").hidden = !S.isExample;
+
+  var lg = document.getElementById("s-legend");
+  lg.innerHTML = CLS.map(function(c){
+    return '<span><i class="swatch" style="background:'+cssv(COL[c])+'"></i>'+c+' '+counts[c]+'</span>';
+  }).join("") + '<span style="color:var(--ink-3)">입자를 클릭하면 측정값이 열립니다</span>';
+
+  renderDetail();
+  histShape();
+  scatterShape();
+  tableShape();
+  document.getElementById("s-hist-unit").textContent = "등가원 지름 (" + lenLabel() + ")";
+  document.getElementById("s-csv").hidden = !n;
+  renderUnified();
+  renderReport();
+  fireRender();
+}
+
+function drawCanvas(){
+  var R=S.result; if(!R) return;
+  var W=R.W, H=R.H;
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext("2d");
+  var out=ctx.createImageData(W,H);
+  var src=S.img.data, o=out.data, lab=R.lab;
+  var i, p4;
+  if (S.view === "mask"){
+    for (i=0;i<W*H;i++){
+      p4=i*4;
+      var on = lab[i] ? 235 : 20;
+      o[p4]=on; o[p4+1]=on; o[p4+2]=on; o[p4+3]=255;
+    }
+  } else {
+    for (i=0;i<W*H;i++){
+      p4=i*4;
+      o[p4]=src[p4]; o[p4+1]=src[p4+1]; o[p4+2]=src[p4+2]; o[p4+3]=255;
+    }
+  }
+  ctx.putImageData(out,0,0);
+
+  if (S.view !== "plain"){
+    var byId={}; R.props.forEach(function(p){ byId[p.id]=p; });
+    var colors={}; CLS.forEach(function(c){
+      var hex=cssv(COL[c]);
+      colors[c]=hex;
+    });
+    // 채움
+    var overlay=ctx.createImageData(W,H), od=overlay.data;
+    function hex2rgb(hx){
+      hx=hx.replace("#","");
+      if(hx.length===3) hx=hx[0]+hx[0]+hx[1]+hx[1]+hx[2]+hx[2];
+      return [parseInt(hx.slice(0,2),16),parseInt(hx.slice(2,4),16),parseInt(hx.slice(4,6),16)];
+    }
+    var rgb={}; CLS.forEach(function(c){ rgb[c]=hex2rgb(colors[c]); });
+    for (i=0;i<W*H;i++){
+      var L=lab[i]; if(!L) continue;
+      var pr=byId[L]; if(!pr) continue;
+      var x=i%W, y=(i/W)|0;
+      var edge = (x===0||y===0||x===W-1||y===H-1) ||
+                 lab[i-1]!==L || lab[i+1]!==L || lab[i-W]!==L || lab[i+W]!==L;
+      var c=rgb[pr.cls], sel = S.selected===L;
+      p4=i*4;
+      od[p4]=c[0]; od[p4+1]=c[1]; od[p4+2]=c[2];
+      od[p4+3] = edge ? 255 : (sel ? 120 : 52);
+    }
+    var tmp=document.createElement("canvas"); tmp.width=W; tmp.height=H;
+    tmp.getContext("2d").putImageData(overlay,0,0);
+    ctx.drawImage(tmp,0,0);
+
+    if (S.numbers){
+      ctx.font = "600 " + Math.max(10, Math.round(W/90)) + "px ui-monospace,monospace";
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      R.props.forEach(function(p){
+        ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.75)";
+        ctx.strokeText(String(p.id), p.cx, p.cy);
+        ctx.fillStyle="#fff"; ctx.fillText(String(p.id), p.cx, p.cy);
+      });
+    }
+  }
+  // 스케일바 표시
+  if (S.calibPts.length){
+    ctx.strokeStyle=cssv("--accent"); ctx.lineWidth=Math.max(2,W/500);
+    ctx.beginPath();
+    ctx.moveTo(S.calibPts[0][0], S.calibPts[0][1]);
+    var b = S.calibPts[1] || S.calibPts[0];
+    ctx.lineTo(b[0], b[1]); ctx.stroke();
+    [S.calibPts[0], b].forEach(function(pt){
+      ctx.beginPath(); ctx.arc(pt[0],pt[1],Math.max(3,W/300),0,Math.PI*2);
+      ctx.fillStyle=cssv("--accent"); ctx.fill();
+    });
+  }
+}
+
+function renderDetail(){
+  var host=document.getElementById("s-detail");
+  var p = S.result ? S.result.props.filter(function(q){return q.id===S.selected})[0] : null;
+  if (!p){
+    host.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">이미지나 표에서 입자를 고르면 측정값이 여기에 나옵니다.</p>';
+    return;
+  }
+  var u = lenLabel(), k = S.umPerPx == null ? 1 : S.umPerPx;
+  function L(v,d){ return (v*k).toFixed(S.umPerPx==null?1:(d==null?2:d)); }
+  host.innerHTML =
+    '<div style="border:1px solid var(--line);border-radius:5px;padding:12px 14px;background:var(--surface-2);display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center">' +
+    ['<div><div class="eyebrow">입자</div><div class="mono" style="font-size:15px">#'+p.id+'</div></div>',
+     '<div><div class="eyebrow">형상</div><div style="font-size:13px"><i class="swatch" style="background:'+cssv(COL[p.cls])+';margin-right:6px"></i>'+p.cls+'</div></div>',
+     '<div><div class="eyebrow">등가원 지름</div><div class="mono" style="font-size:13px">'+L(p.eqd)+' '+u+'</div></div>',
+     '<div><div class="eyebrow">최대 Feret</div><div class="mono" style="font-size:13px">'+L(p.feret)+' '+u+'</div></div>',
+     '<div><div class="eyebrow">면적</div><div class="mono" style="font-size:13px">'+(S.umPerPx==null? fmt(p.area)+' px²' : (p.area*k*k).toFixed(2)+' µm²')+'</div></div>',
+     '<div><div class="eyebrow">원형도</div><div class="mono" style="font-size:13px">'+p.circ.toFixed(3)+'</div></div>',
+     '<div><div class="eyebrow">고형도</div><div class="mono" style="font-size:13px">'+p.sol.toFixed(3)+'</div></div>',
+     '<div><div class="eyebrow">종횡비</div><div class="mono" style="font-size:13px">'+p.ar.toFixed(2)+'</div></div>'
+    ].join("") +
+    '<button class="btn" id="s-clear-sel" type="button">선택 해제</button></div>';
+  document.getElementById("s-clear-sel").addEventListener("click", function(){ S.selected=null; renderShape(); });
+}
+
+function histShape(){
+  var host=document.getElementById("s-hist"); host.innerHTML="";
+  var R=S.result, vals=R.props.map(lenOf);
+  if (!vals.length){ host.innerHTML='<p style="font-size:12px;color:var(--ink-3)">검출된 입자가 없습니다.</p>'; return; }
+  var W=460,H=210,padL=40,padR=12,padT=12,padB=34;
+  var pw=W-padL-padR, ph=H-padT-padB;
+  var hi=Math.max.apply(null,vals)*1.02, lo=0, bins=Math.min(30,Math.max(8,Math.ceil(Math.sqrt(vals.length)*1.6)));
+  var cnt=new Array(bins).fill(0);
+  vals.forEach(function(v){ var b=Math.min(bins-1,Math.floor((v-lo)/(hi-lo)*bins)); cnt[b]++; });
+  var mx=Math.max.apply(null,cnt);
+  var X=function(v){return padL+(v-lo)/(hi-lo)*pw}, Y=function(v){return padT+ph-v/mx*ph};
+  var svg=el("svg",{viewBox:"0 0 "+W+" "+H,width:"100%",role:"img"});
+  [0,.5,1].forEach(function(f){
+    var y=padT+ph-f*ph;
+    svg.appendChild(el("line",{x1:padL,x2:W-padR,y1:y,y2:y,stroke:cssv("--grid")}));
+    svg.appendChild(el("text",{x:padL-7,y:y+3.5,"text-anchor":"end","font-size":"9.5",fill:cssv("--ink-3")},[txt(String(Math.round(mx*f)))]));
+  });
+  var bw=pw/bins;
+  cnt.forEach(function(c,i){
+    if(!c) return;
+    var v0=lo+i*(hi-lo)/bins, v1=v0+(hi-lo)/bins;
+    var r=el("rect",{x:X(v0)+0.5,y:Y(c),width:Math.max(bw-2,1),height:padT+ph-Y(c),fill:cssv("--s1"),rx:1.5});
+    r.style.cursor="crosshair";
+    bindTip(r,function(){return v0.toFixed(1)+'–'+v1.toFixed(1)+' '+lenLabel()+'<br><span class="hl">'+c+'개</span>'});
+    svg.appendChild(r);
+  });
+  svg.appendChild(el("line",{x1:padL,x2:W-padR,y1:padT+ph,y2:padT+ph,stroke:cssv("--line-2")}));
+  [0,.25,.5,.75,1].forEach(function(f){
+    var v=lo+f*(hi-lo);
+    svg.appendChild(el("text",{x:X(v),y:H-16,"text-anchor":"middle","font-size":"9.5",fill:cssv("--ink-3")},[txt(v.toFixed(v<10?1:0))]));
+  });
+  var mean=vals.reduce(function(a,b){return a+b},0)/vals.length;
+  svg.appendChild(el("text",{x:padL,y:H-3,"font-size":"9.5",fill:cssv("--ink-3")},[txt("평균 "+mean.toFixed(2)+" "+lenLabel()+" · n="+vals.length)]));
+  svg.appendChild(el("text",{x:W-padR,y:H-3,"text-anchor":"end","font-size":"9.5",fill:cssv("--ink-3")},[txt("등가원 지름")]));
+  host.appendChild(svg);
+}
+
+function scatterShape(){
+  var host=document.getElementById("s-scatter"); host.innerHTML="";
+  var R=S.result;
+  if (!R.props.length){ host.innerHTML='<p style="font-size:12px;color:var(--ink-3)">검출된 입자가 없습니다.</p>'; return; }
+  var W=460,H=280,padL=42,padR=12,padT=12,padB=38;
+  var pw=W-padL-padR, ph=H-padT-padB;
+  var X=function(v){return padL+(Math.max(0.35,Math.min(1.02,v))-0.35)/(1.02-0.35)*pw};
+  var Y=function(v){return padT+ph-(Math.max(0,Math.min(1.02,v)))/1.02*ph};
+  var svg=el("svg",{viewBox:"0 0 "+W+" "+H,width:"100%",role:"img"});
+  [0.4,0.6,0.8,1.0].forEach(function(v){
+    svg.appendChild(el("line",{x1:X(v),x2:X(v),y1:padT,y2:padT+ph,stroke:cssv("--grid")}));
+    svg.appendChild(el("text",{x:X(v),y:H-24,"text-anchor":"middle","font-size":"9.5",fill:cssv("--ink-3")},[txt(v.toFixed(1))]));
+  });
+  [0,0.25,0.5,0.75,1].forEach(function(v){
+    svg.appendChild(el("line",{x1:padL,x2:W-padR,y1:Y(v),y2:Y(v),stroke:cssv("--grid")}));
+    svg.appendChild(el("text",{x:padL-7,y:Y(v)+3.5,"text-anchor":"end","font-size":"9.5",fill:cssv("--ink-3")},[txt(v.toFixed(2))]));
+  });
+  svg.appendChild(el("line",{x1:X(S.sol),x2:X(S.sol),y1:padT,y2:padT+ph,stroke:cssv("--s7"),"stroke-width":1.5,"stroke-dasharray":"5 3"}));
+  svg.appendChild(el("text",{x:X(S.sol)-4,y:padT+11,"text-anchor":"end","font-size":"9.5",fill:cssv("--s7")},[txt("← 응집형")]));
+  svg.appendChild(el("line",{x1:padL,x2:W-padR,y1:Y(S.circ),y2:Y(S.circ),stroke:cssv("--s1"),"stroke-width":1.5,"stroke-dasharray":"5 3"}));
+  svg.appendChild(el("text",{x:W-padR-2,y:Y(S.circ)-5,"text-anchor":"end","font-size":"9.5",fill:cssv("--s1")},[txt("구형 ↑")]));
+  R.props.forEach(function(p){
+    var r=Math.max(2.8,Math.min(8,Math.sqrt(p.area)/6));
+    var c=el("circle",{cx:X(p.sol),cy:Y(p.circ),r:r,fill:cssv(COL[p.cls]),stroke:cssv("--surface"),"stroke-width":1.4,
+      opacity:(S.selected&&S.selected!==p.id)?0.32:0.92});
+    c.style.cursor="pointer";
+    bindTip(c,function(){return '#'+p.id+' · <span class="hl">'+p.cls+'</span><br>고형도 '+p.sol.toFixed(3)+' · 원형도 '+p.circ.toFixed(3)+'<br>종횡비 '+p.ar.toFixed(2)});
+    c.addEventListener("click",function(){ S.selected=(S.selected===p.id)?null:p.id; renderShape(); });
+    svg.appendChild(c);
+  });
+  svg.appendChild(el("text",{x:W-padR,y:H-5,"text-anchor":"end","font-size":"9.5",fill:cssv("--ink-3")},[txt("고형도")]));
+  svg.appendChild(el("text",{x:padL-34,y:padT+6,"font-size":"9.5",fill:cssv("--ink-3")},[txt("원형도")]));
+  host.appendChild(svg);
+}
+
+var sortKey="id", sortDir=1;
+function tableShape(){
+  var t=document.getElementById("s-table"), R=S.result;
+  var u=lenLabel(), k=S.umPerPx==null?1:S.umPerPx;
+  var cols=[["id","#"],["cls","형상"],["eqd","등가원 지름 ("+u+")"],["feret","최대 Feret ("+u+")"],
+            ["area","면적 ("+(S.umPerPx==null?"px²":"µm²")+")"],["circ","원형도"],["sol","고형도"],["ar","종횡비"]];
+  var rows=R.props.slice().sort(function(a,b){
+    var va=a[sortKey], vb=b[sortKey];
+    if (typeof va==="string") return sortDir*va.localeCompare(vb,"ko");
+    return sortDir*(va-vb);
+  });
+  t.innerHTML = "<thead><tr>"+cols.map(function(c){
+      return "<th class='"+(c[0]==="cls"?"":"n")+"' data-k='"+c[0]+"'>"+c[1]+(sortKey===c[0]?(sortDir>0?" ▲":" ▼"):"")+"</th>";
+    }).join("")+"</tr></thead><tbody>"+
+    rows.map(function(p){
+      return "<tr data-id='"+p.id+"'"+(S.selected===p.id?" class='sel'":"")+">"+
+        "<td class='n'>"+p.id+"</td>"+
+        "<td><i class='swatch' style='background:"+cssv(COL[p.cls])+";margin-right:6px'></i>"+p.cls+"</td>"+
+        "<td class='n'>"+(p.eqd*k).toFixed(S.umPerPx==null?1:2)+"</td>"+
+        "<td class='n'>"+(p.feret*k).toFixed(S.umPerPx==null?1:2)+"</td>"+
+        "<td class='n'>"+(S.umPerPx==null? fmt(p.area) : (p.area*k*k).toFixed(2))+"</td>"+
+        "<td class='n'>"+p.circ.toFixed(3)+"</td>"+
+        "<td class='n'>"+p.sol.toFixed(3)+"</td>"+
+        "<td class='n'>"+p.ar.toFixed(2)+"</td></tr>";
+    }).join("")+"</tbody>";
+  t.querySelectorAll("th[data-k]").forEach(function(th){
+    th.addEventListener("click",function(){
+      var kk=th.dataset.k;
+      if (sortKey===kk) sortDir=-sortDir; else { sortKey=kk; sortDir=1; }
+      tableShape();
+    });
+  });
+  t.querySelectorAll("tbody tr").forEach(function(tr){
+    tr.addEventListener("click",function(){
+      var id=+tr.dataset.id;
+      S.selected = S.selected===id ? null : id;
+      renderShape();
+    });
+  });
+}
+
+/* --- canvas interaction --- */
+function canvasPos(e){
+  var r=canvas.getBoundingClientRect();
+  return [ (e.clientX-r.left)/r.width*canvas.width, (e.clientY-r.top)/r.height*canvas.height ];
+}
+canvas.addEventListener("click", function(e){
+  if (!S.result) return;
+  var p=canvasPos(e);
+  if (S.calibMode){
+    if (S.calibPts.length>=2) S.calibPts=[];
+    S.calibPts.push([p[0],p[1]]);
+    if (S.calibPts.length===2){
+      var dx=S.calibPts[1][0]-S.calibPts[0][0], dy=S.calibPts[1][1]-S.calibPts[0][1];
+      S.calibPx=Math.sqrt(dx*dx+dy*dy);
+      S.calibMode=false; wrap.classList.remove("calib");
+      document.getElementById("s-calib").textContent="이미지 위에 스케일바 긋기";
+      applyCalib();
+    }
+    drawCanvas();
+    return;
+  }
+  var x=Math.round(p[0]), y=Math.round(p[1]);
+  if (x<0||y<0||x>=S.result.W||y>=S.result.H) return;
+  var L=S.result.lab[y*S.result.W+x];
+  if (LINK.active != null){
+    if (L){
+      E.spots.forEach(function(sp,i){ if (i!==LINK.active && sp.particleId===L) sp.particleId=null; });
+      E.spots[LINK.active].particleId = L;
+      LINK.active = null;
+      setLinkBar();
+      renderEDS();
+    }
+    S.selected = L || null;
+    renderShape();
+    return;
+  }
+  S.selected = (L && S.selected!==L) ? L : null;
+  renderShape();
+});
+canvas.addEventListener("mousemove", function(e){
+  if (!S.result || S.calibMode) return;
+  var p=canvasPos(e), x=Math.round(p[0]), y=Math.round(p[1]);
+  if (x<0||y<0||x>=S.result.W||y>=S.result.H){ hideTip(); return; }
+  var L=S.result.lab[y*S.result.W+x];
+  if (!L){ hideTip(); canvas.style.cursor="default"; return; }
+  canvas.style.cursor="pointer";
+  var pr=S.result.props.filter(function(q){return q.id===L})[0];
+  if (!pr){ hideTip(); return; }
+  var k=S.umPerPx==null?1:S.umPerPx;
+  showTip(e,'#'+pr.id+' · <span class="hl">'+pr.cls+'</span><br>지름 '+(pr.eqd*k).toFixed(S.umPerPx==null?1:2)+' '+lenLabel()+
+    '<br>원형도 '+pr.circ.toFixed(3)+' · 고형도 '+pr.sol.toFixed(3)+' · 종횡비 '+pr.ar.toFixed(2));
+});
+canvas.addEventListener("mouseleave", hideTip);
+
+function applyCalib(){
+  var v=parseFloat(document.getElementById("s-len").value);
+  var mult=parseFloat(document.getElementById("s-unit").value);
+  var st=document.getElementById("s-calib-state");
+  if (!S.calibPx){ st.textContent="먼저 이미지 위에 스케일바를 그으세요."; return; }
+  if (!(v>0)){
+    st.innerHTML='<span style="color:var(--serious)">길이 '+S.calibPx.toFixed(1)+'px를 그었습니다. 실제 거리를 입력하세요.</span>';
+    return;
+  }
+  S.umPerPx = (v*mult)/S.calibPx;
+  document.getElementById("s-scale-note").textContent=(S.umPerPx*1000).toFixed(2)+" nm/px";
+  st.innerHTML='보정됨 — 그은 '+S.calibPx.toFixed(1)+'px = '+v+' '+(mult===1?"µm":mult===0.001?"nm":"mm")+'.';
+  renderShape();
+}
+
+/* ================= EDS PANEL ================= */
+var SYMBOLS = ("H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr "+
+  "Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu "+
+  "Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Th U").split(" ");
+var SYMSET = {}; SYMBOLS.forEach(function(s){ SYMSET[s]=1; });
+var E = { basis:"metal", v1:40, c:55, fe:40, sial1:30, ti:40, sial2:50, ca:40, spots:[], selected:null };
+var CLS2 = ["Fe-rich","알루미노실리케이트","Ca-rich","탄소질","Ti-rich","Fe-광물 혼합","기타/미분류"];
+var COL2 = {"Fe-rich":"--s2","알루미노실리케이트":"--s1","Ca-rich":"--s3","탄소질":"--s7","Ti-rich":"--s4","Fe-광물 혼합":"--s5","기타/미분류":"--neutral"};
+
+function normalizeSym(tok){
+  var t = tok.replace(/[^A-Za-z]/g,"");
+  if (!t) return null;
+  var cap = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  return SYMSET[cap] ? cap : null;
+}
+function parseEDS(text){
+  var lines = text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean);
+  if (!lines.length) return {spots:[], error:"붙여넣은 내용이 없습니다."};
+  var split = function(l){ return l.split(/\t|\s*[,;|]\s*|\s{2,}|\s+/).filter(Boolean); };
+
+  // 세로형: 첫 토큰이 원소인 줄이 2개 이상
+  var rowLines = lines.filter(function(l){ var t=split(l); return t.length>=2 && normalizeSym(t[0]) && /[\d.]/.test(t[1]); });
+  // 가로형: 원소 토큰이 3개 이상인 머리글 줄
+  var headerIdx = -1, headerSyms = null, headerToks = null;
+  for (var i=0;i<lines.length;i++){
+    var toks = split(lines[i]);
+    var syms = toks.map(normalizeSym);
+    var nSym = syms.filter(Boolean).length;
+    if (nSym >= 3 && nSym >= toks.length-2){ headerIdx=i; headerSyms=syms; headerToks=toks; break; }
+  }
+
+  if (headerIdx >= 0 && lines.length > headerIdx+1){
+    // 머리글의 열 위치로 값을 맞춘다. 지점 이름이 "Point 1"처럼 띄어써서
+    // 토큰이 늘어난 경우는 그만큼 밀어서 정렬한다 — 숫자를 앞에서부터 세면
+    // 이름 속 숫자가 첫 원소 자리를 먹는다.
+    var firstElemCol = headerSyms.findIndex(function(x){ return !!x; });
+    var spots = [];
+    for (var r=headerIdx+1;r<lines.length;r++){
+      var tk = split(lines[r]);
+      if (!tk.length) continue;
+      var offset = tk.length - headerToks.length;
+      var elems = {};
+      for (var c=0;c<headerSyms.length;c++){
+        if (!headerSyms[c]) continue;
+        var t = tk[c+offset];
+        if (t == null) continue;
+        var v = parseFloat(String(t).replace(/[^0-9.\-]/g,""));
+        if (isFinite(v)) elems[headerSyms[c]] = v;
+      }
+      if (!Object.keys(elems).length) continue;
+      var name = tk.slice(0, Math.max(0, firstElemCol + offset)).join(" ");
+      spots.push({name: name || ("지점 " + (spots.length+1)), elements: elems});
+    }
+    if (spots.length) return {spots:spots, mode:"가로형(다지점)"};
+  }
+
+  if (rowLines.length >= 2){
+    var elems2 = {};
+    rowLines.forEach(function(l){
+      var t = split(l), sym = normalizeSym(t[0]);
+      for (var j=1;j<t.length;j++){
+        var v = parseFloat(t[j].replace(/[^0-9.\-]/g,""));
+        if (isFinite(v)){ elems2[sym] = v; break; }
+      }
+    });
+    if (Object.keys(elems2).length) return {spots:[{name:"지점 1", elements:elems2}], mode:"세로형(단일 지점)"};
+  }
+  return {spots:[], error:"원소와 수치를 찾지 못했습니다. 원소 기호와 wt% 숫자가 같은 줄에 있는지 확인해 주세요."};
+}
+
+function prepSpot(sp){
+  var e = sp.elements, total = 0, k;
+  for (k in e) total += Math.max(0, e[k]) || 0;
+  if (!total) total = 1;
+  var norm = {}, metalTotal = 0;
+  for (k in e){
+    norm[k] = Math.max(0,e[k])/total*100;
+    if (k !== "C" && k !== "O") metalTotal += norm[k];
+  }
+  var metal = {};
+  for (k in norm) if (k!=="C" && k!=="O") metal[k] = metalTotal ? norm[k]/metalTotal*100 : 0;
+  return {name:sp.name, raw:e, total:norm, metal:metal, C:norm.C||0, O:norm.O||0, metalTotal:metalTotal};
+}
+function g(o,k){ return o[k]||0; }
+function ruleV1(sp){
+  var b = E.basis==="metal" ? sp.metal : sp.total;
+  if (g(b,"Fe") >= E.v1) return "Fe≥"+E.v1+"%";
+  if (g(b,"Al") >= E.v1) return "Al≥"+E.v1+"%";
+  if (g(b,"Ti") >= E.v1) return "Ti≥"+E.v1+"%";
+  return "미분류";
+}
+function ruleV2(sp){
+  var m = E.basis==="metal" ? sp.metal : sp.total;
+  var Fe=g(m,"Fe"), Si=g(m,"Si"), Al=g(m,"Al"), Ca=g(m,"Ca"), Ti=g(m,"Ti");
+  if (sp.C >= E.c) return "탄소질";
+  if (Fe >= E.fe && Si+Al < E.sial1) return "Fe-rich";
+  if (Ti >= E.ti) return "Ti-rich";
+  if (Si+Al >= E.sial2 && Al/Math.max(Si,1e-6) >= 0.15 && Al/Math.max(Si,1e-6) <= 1.2) return "알루미노실리케이트";
+  if (Ca >= E.ca) return "Ca-rich";
+  if (Fe >= 20 && Si+Al >= 25) return "Fe-광물 혼합";
+  return "기타/미분류";
+}
+function renderEDS(keepEditor){
+  var n = E.spots.length;
+  document.getElementById("e-kpis").hidden = !n;
+  document.getElementById("e-result-panel").hidden = !n;
+  document.getElementById("e-csv").hidden = !n;
+  document.getElementById("e-link-panel").hidden = !n;
+  if (!n){ document.getElementById("e-detail-panel").hidden = true; renderEditor(); renderLink(); renderUnified(); renderReport(); return; }
+
+  E.spots.forEach(function(sp){ sp.v1 = ruleV1(sp); sp.v2 = ruleV2(sp); });
+  var unc = E.spots.filter(function(s){return s.v1==="미분류"}).length;
+  var other = E.spots.filter(function(s){return s.v2==="기타/미분류"}).length;
+  var counts = {};
+  E.spots.forEach(function(s){ counts[s.v2]=(counts[s.v2]||0)+1; });
+  var top = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]})[0];
+  var avgFe = E.spots.reduce(function(a,s){ return a + g(E.basis==="metal"?s.metal:s.total,"Fe"); },0)/n;
+
+  document.getElementById("e-kpis").innerHTML =
+    kpiHTML("지점", fmt(n), "곳", E.basis==="metal"?"C·O 제외 금속기준":"전체기준") +
+    kpiHTML("v1 미분류", fmt(unc), "곳", (unc/n*100).toFixed(0)+"%") +
+    kpiHTML("v2 기타/미분류", fmt(other), "곳", (other/n*100).toFixed(0)+"%") +
+    kpiHTML("평균 Fe", avgFe.toFixed(1), "%", "최다 판정 " + top);
+
+  document.getElementById("e-basis-note").textContent = E.basis==="metal" ? "C·O 제외 금속기준으로 재정규화" : "입력값을 100%로 정규화한 전체기준";
+
+  var allEls = {};
+  E.spots.forEach(function(s){ for (var k in s.total) allEls[k]=1; });
+  var els = Object.keys(allEls).sort(function(a,b){
+    var sa=0, sb=0;
+    E.spots.forEach(function(s){ sa+=g(s.total,a); sb+=g(s.total,b); });
+    return sb-sa;
+  }).slice(0,8);
+
+  var t=document.getElementById("e-table");
+  t.innerHTML = "<thead><tr><th class='plain'>지점</th>"+
+    els.map(function(e){ return "<th class='n plain'>"+e+"</th>"; }).join("")+
+    "<th class='plain'>v1 판정</th><th class='plain'>v2 판정</th></tr></thead><tbody>"+
+    E.spots.map(function(s,i){
+      var b = E.basis==="metal" ? s.metal : s.total;
+      return "<tr data-i='"+i+"'"+(E.selected===i?" class='sel'":"")+"><td>"+esc(s.name)+"</td>"+
+        els.map(function(e){
+          var v = g(b,e);
+          return "<td class='n'"+((e==="C"||e==="O")&&E.basis==="metal"?" style='color:var(--ink-3)'":"")+">"+
+            ((e==="C"||e==="O")&&E.basis==="metal" ? "—" : v.toFixed(1))+"</td>";
+        }).join("")+
+        "<td><span class='flag "+(s.v1==="미분류"?"bad":"ok")+"'>"+s.v1+"</span></td>"+
+        "<td><i class='swatch' style='background:"+cssv(COL2[s.v2])+";margin-right:6px'></i>"+s.v2+"</td></tr>";
+    }).join("")+"</tbody>";
+  t.querySelectorAll("tbody tr").forEach(function(tr){
+    tr.addEventListener("click", function(){
+      var i=+tr.dataset.i;
+      E.selected = E.selected===i ? null : i;
+      renderEDS();
+    });
+  });
+
+  document.getElementById("e-legend").innerHTML = CLS2.filter(function(c){return counts[c]}).map(function(c){
+    return '<span><i class="swatch" style="background:'+cssv(COL2[c])+'"></i>'+c+' '+counts[c]+'</span>';
+  }).join("") + '<span style="color:var(--ink-3)">행을 클릭하면 조성이 열립니다</span>';
+
+  var dp=document.getElementById("e-detail-panel");
+  if (E.selected==null || !E.spots[E.selected]){ dp.hidden=true; }
+  else {
+    dp.hidden=false;
+    var sp=E.spots[E.selected];
+    document.getElementById("e-detail-name").textContent = sp.name;
+    var b = E.basis==="metal" ? sp.metal : sp.total;
+    var keys = Object.keys(b).sort(function(a,c){ return b[c]-b[a]; });
+    var mx = Math.max.apply(null, keys.map(function(k){return b[k]})) || 1;
+    document.getElementById("e-detail").innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:6px">' +
+      keys.map(function(k){
+        return '<div style="display:flex;align-items:center;gap:10px">'+
+          '<div class="mono" style="width:34px;font-size:12.5px">'+k+'</div>'+
+          '<div style="flex:1;height:13px;background:var(--surface-3);border-radius:3px;overflow:hidden">'+
+          '<div style="width:'+(b[k]/mx*100)+'%;height:100%;background:'+cssv(k==="Fe"?"--s2":k==="Si"||k==="Al"?"--s1":"--neutral")+'"></div></div>'+
+          '<div class="mono" style="width:56px;text-align:right;font-size:12.5px">'+b[k].toFixed(2)+'%</div></div>';
+      }).join("") +
+      '<div style="font-size:11.5px;color:var(--ink-3);margin-top:6px" class="mono">C '+sp.C.toFixed(2)+'% · O '+sp.O.toFixed(2)+'% · 금속 합계 '+sp.metalTotal.toFixed(2)+'%</div></div>';
+  }
+  renderEditor(keepEditor);
+  renderLink();
+  renderUnified();
+  renderReport();
+}
+
+/* ================= REPORT ================= */
+function renderReport(){
+  var host=document.getElementById("r-summary");
+  var parts=[];
+  if (S.result){
+    var n=S.result.props.length, counts={};
+    CLS.forEach(function(c){counts[c]=0});
+    S.result.props.forEach(function(p){counts[p.cls]++});
+    var diams=S.result.props.map(lenOf);
+    var mean=diams.length? diams.reduce(function(a,b){return a+b},0)/diams.length : 0;
+    parts.push('<div style="margin-bottom:16px"><div class="eyebrow" style="margin-bottom:7px">형상 분석'+(S.isExample?' — 합성 예제 이미지':'')+'</div>'+
+      '<div style="font-size:13px;color:var(--ink-2)">'+esc(S.imgName)+' · 검출 '+n+'개 · 평균 등가원 지름 '+mean.toFixed(2)+' '+lenLabel()+
+      (S.umPerPx==null?' <span class="flag warn">스케일 미보정</span>':'')+'</div>'+
+      '<div class="legend" style="margin-top:8px">'+CLS.map(function(c){
+        return '<span><i class="swatch" style="background:'+cssv(COL[c])+'"></i>'+c+' '+counts[c]+'개 ('+(n?(counts[c]/n*100).toFixed(0):0)+'%)</span>';
+      }).join("")+'</div></div>');
+  }
+  if (E.spots.length){
+    var counts2={};
+    E.spots.forEach(function(s){ counts2[s.v2]=(counts2[s.v2]||0)+1; });
+    parts.push('<div><div class="eyebrow" style="margin-bottom:7px">조성 분석</div>'+
+      '<div style="font-size:13px;color:var(--ink-2)">'+E.spots.length+'개 지점 · '+(E.basis==="metal"?"금속기준":"전체기준")+'</div>'+
+      '<div class="legend" style="margin-top:8px">'+Object.keys(counts2).map(function(c){
+        return '<span><i class="swatch" style="background:'+cssv(COL2[c]||"--neutral")+'"></i>'+c+' '+counts2[c]+'곳</span>';
+      }).join("")+'</div></div>');
+  } else {
+    parts.push('<p style="font-size:12.5px;color:var(--ink-3)">EDS 탭에서 정량값을 넣으면 조성 요약도 함께 나옵니다.</p>');
+  }
+  host.innerHTML = parts.join("");
+
+  var rd=document.getElementById("r-defs");
+  if (!rd.dataset.done){
+    rd.innerHTML = "<thead><tr><th class='plain'>지표</th><th class='plain'>정의</th></tr></thead><tbody>"+
+      [["등가원 지름","2·√(면적/π). 같은 면적을 갖는 원의 지름."],
+       ["최대 Feret","볼록 껍질 위 두 점 사이의 최대 거리."],
+       ["둘레","윤곽 추적 길이(직교 1, 대각 √2)에 디지털 곡선 보정계수 0.95를 곱한 값."],
+       ["원형도","4π·면적 / 둘레². 완전한 원이 1."],
+       ["고형도","면적 / 볼록 껍질 면적. 오목할수록 작아집니다."],
+       ["종횡비","2차 모멘트로 구한 장축/단축 길이의 비."],
+       ["이진화","가우시안 블러 후 Otsu 자동 임계 또는 수동 임계."],
+       ["접촉 분리","거리변환의 성분별 최댓값 대비 일정 비율 이상을 씨앗으로 두고, 거리 내림차순으로 흘려보내 나눕니다."],
+       ["금속기준","C와 O를 뺀 나머지 원소를 100%로 재정규화한 값."]
+      ].map(function(r){ return "<tr><td style='white-space:nowrap'>"+r[0]+"</td><td style='color:var(--ink-2)'>"+r[1]+"</td></tr>"; }).join("")+
+      "</tbody>";
+    rd.dataset.done="1";
+  }
+}
+
+/* ================= CSV ================= */
+function csvEscape(v){
+  var s=String(v==null?"":v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function toCSV(rows){
+  return "﻿" + rows.map(function(r){ return r.map(csvEscape).join(","); }).join("\r\n");
+}
+async function saveCSV(filename, rows){
+  var data = toCSV(rows);
+  if (claudeNS.downloads){
+    try { await claudeNS.downloads.save({filename:filename, data:data}); return; }
+    catch(e){ if (e && e.code === "cancelled") return; }
+  }
+  // 아티팩트 밖(로컬 파일·GitHub Pages 등)에서는 평범한 다운로드 링크가 동작한다
+  try {
+    var blob = new Blob([data], {type:"text/csv;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  } catch(e){}
+}
+
+/* ================= WIRING ================= */
+function bindRange(id, obj, key, dec, onChange, suffix){
+  var input=document.getElementById(id), out=document.getElementById(id+"-v");
+  function sync(){
+    obj[key]=parseFloat(input.value);
+    if (out) out.textContent = obj[key].toFixed(dec) + (suffix||"");
+  }
+  input.addEventListener("input", function(){ sync(); onChange(); });
+  sync();
+}
+var shapeTimer=null;
+function debouncedRun(){ if(shapeTimer) clearTimeout(shapeTimer); shapeTimer=setTimeout(runShape,220); }
+
+bindRange("s-sigma",S,"sigma",1,debouncedRun);
+bindRange("s-min",S,"minArea",0,debouncedRun);
+bindRange("s-split",S,"splitFrac",2,debouncedRun);
+bindRange("s-thr",S,"thr",0,function(){ if(!S.auto) debouncedRun(); });
+bindRange("s-crop",S,"cropBottom",2,debouncedRun);
+document.getElementById("s-crop").addEventListener("input",function(e){
+  document.getElementById("s-crop-v").textContent=Math.round(e.target.value*100)+"%";
+});
+bindRange("s-ar",S,"ar",2,reclassify);
+bindRange("s-sol",S,"sol",2,reclassify);
+bindRange("s-circ",S,"circ",2,reclassify);
+bindRange("s-arsph",S,"arsph",2,reclassify);
+
+document.getElementById("s-auto").addEventListener("change",function(e){
+  S.auto=e.target.checked;
+  document.getElementById("s-thr").disabled=S.auto;
+  runShape();
+});
+document.getElementById("s-bright").addEventListener("change",function(e){ S.bright=e.target.checked; runShape(); });
+document.getElementById("s-fill").addEventListener("change",function(e){ S.fill=e.target.checked; runShape(); });
+document.getElementById("s-border").addEventListener("change",function(e){ S.border=e.target.checked; runShape(); });
+document.getElementById("s-num").addEventListener("change",function(e){ S.numbers=e.target.checked; drawCanvas(); });
+document.querySelectorAll('.seg button[data-view]').forEach(function(b){
+  b.addEventListener("click",function(){
+    S.view=b.dataset.view;
+    document.querySelectorAll('.seg button[data-view]').forEach(function(x){ x.setAttribute("aria-pressed",String(x===b)); });
+    drawCanvas();
+  });
+});
+
+var fileInput=document.getElementById("s-file"), drop=document.getElementById("s-drop");
+function handleFile(f){
+  if (!f || !/^image\//.test(f.type)) return;
+  var url=URL.createObjectURL(f);
+  loadImage(url, f.name, false);
+}
+drop.addEventListener("click",function(){ fileInput.click(); });
+drop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); } });
+fileInput.addEventListener("change",function(e){ handleFile(e.target.files[0]); });
+["dragenter","dragover"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add("over"); });
+});
+["dragleave","drop"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); });
+});
+drop.addEventListener("drop",function(e){ handleFile(e.dataTransfer.files[0]); });
+window.addEventListener("paste",function(e){
+  var items=e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (var i=0;i<items.length;i++){
+    if (items[i].type.indexOf("image")===0){
+      // 조성 탭의 사진 경로를 보고 있으면 그쪽으로, 아니면 SEM 이미지로 보낸다
+      if (photoRouteActive()) setPhoto(items[i].getAsFile());
+      else handleFile(items[i].getAsFile());
+      break;
+    }
+  }
+});
+document.getElementById("s-example").addEventListener("click",function(){
+  loadImage("example-sem.png","합성 예제 SEM 필드",true);
+});
+
+document.getElementById("s-calib").addEventListener("click",function(){
+  S.calibMode=!S.calibMode;
+  S.calibPts=[];
+  wrap.classList.toggle("calib",S.calibMode);
+  this.textContent = S.calibMode ? "취소 — 시작점과 끝점을 클릭" : "이미지 위에 스케일바 긋기";
+  drawCanvas();
+});
+document.getElementById("s-len").addEventListener("input",applyCalib);
+document.getElementById("s-unit").addEventListener("change",applyCalib);
+document.getElementById("s-calib-clear").addEventListener("click",function(){
+  S.umPerPx=null; S.calibPx=0; S.calibPts=[];
+  document.getElementById("s-scale-note").textContent="미보정";
+  document.getElementById("s-calib-state").textContent="보정 전에는 모든 길이가 px 단위입니다.";
+  renderShape();
+});
+document.getElementById("s-csv").addEventListener("click",function(){
+  var u=lenLabel(), k=S.umPerPx==null?1:S.umPerPx;
+  var rows=[["id","class","eq_diameter_"+u,"feret_max_"+u,"area_"+(S.umPerPx==null?"px2":"um2"),
+             "perimeter_"+u,"circularity","solidity","aspect_ratio","centroid_x_px","centroid_y_px"]];
+  S.result.props.forEach(function(p){
+    rows.push([p.id,p.cls,(p.eqd*k).toFixed(4),(p.feret*k).toFixed(4),
+      (S.umPerPx==null?p.area:(p.area*k*k)).toFixed(4),(p.perim*k).toFixed(4),
+      p.circ.toFixed(4),p.sol.toFixed(4),p.ar.toFixed(4),p.cx.toFixed(1),p.cy.toFixed(1)]);
+  });
+  saveCSV("particles_"+(S.imgName.replace(/\.[^.]+$/,"")||"sem")+".csv", rows);
+});
+
+/* EDS wiring */
+bindRange("e-v1",E,"v1",0,renderEDS);
+bindRange("e-c",E,"c",0,renderEDS);
+bindRange("e-fe",E,"fe",0,renderEDS);
+bindRange("e-sial1",E,"sial1",0,renderEDS);
+bindRange("e-ti",E,"ti",0,renderEDS);
+bindRange("e-sial2",E,"sial2",0,renderEDS);
+bindRange("e-ca",E,"ca",0,renderEDS);
+document.querySelectorAll('.seg button[data-basis]').forEach(function(b){
+  b.addEventListener("click",function(){
+    E.basis=b.dataset.basis;
+    document.querySelectorAll('.seg button[data-basis]').forEach(function(x){ x.setAttribute("aria-pressed",String(x===b)); });
+    renderEDS();
+  });
+});
+function setParseMsg(html, kind){
+  document.getElementById("e-parse-msg").innerHTML = html
+    ? '<div class="callout" style="border-left-color:'+(kind==="bad"?"var(--critical)":"var(--accent)")+'">'+html+'</div>' : "";
+}
+document.getElementById("e-parse").addEventListener("click",function(){
+  var res=parseEDS(document.getElementById("e-paste").value);
+  if (!res.spots.length){ setParseMsg(esc(res.error||"읽지 못했습니다."), "bad"); return; }
+  E.spots=res.spots.map(prepSpot); E.selected=null;
+  setParseMsg("<b>"+res.mode+"</b>으로 읽었습니다 — "+res.spots.length+"개 지점, 원소 "+Object.keys(res.spots[0].elements).length+"종. 값이 맞는지 표에서 확인하세요.");
+  renderEDS();
+});
+document.getElementById("e-clear").addEventListener("click",function(){
+  document.getElementById("e-paste").value="";
+  E.spots=[]; E.selected=null; setParseMsg(""); renderEDS();
+});
+document.getElementById("e-csv").addEventListener("click",function(){
+  var allEls={};
+  E.spots.forEach(function(s){ for(var k in s.total) allEls[k]=1; });
+  var els=Object.keys(allEls);
+  var rows=[["spot","basis"].concat(els).concat(["v1","v2"])];
+  E.spots.forEach(function(s){
+    var b = E.basis==="metal" ? s.metal : s.total;
+    rows.push([s.name, E.basis].concat(els.map(function(e){ return (b[e]==null?"":b[e].toFixed(3)); })).concat([s.v1,s.v2]));
+  });
+  saveCSV("eds_spots.csv", rows);
+});
+
+/* ================= EDS 정량표 사진 ================= */
+var eDrop=document.getElementById("e-drop"), eFile=document.getElementById("e-file"), eState=document.getElementById("e-ai-state");
+var PHOTO={url:null, file:null, zoom:false};
+var readCtl=null;
+
+eDrop.addEventListener("click",function(){ eFile.click(); });
+eDrop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); eFile.click(); } });
+["dragenter","dragover"].forEach(function(ev){ eDrop.addEventListener(ev,function(e){e.preventDefault();eDrop.classList.add("over")}); });
+["dragleave","drop"].forEach(function(ev){ eDrop.addEventListener(ev,function(e){e.preventDefault();eDrop.classList.remove("over")}); });
+eDrop.addEventListener("drop",function(e){ setPhoto(e.dataTransfer.files[0]); });
+eFile.addEventListener("change",function(e){ setPhoto(e.target.files[0]); eFile.value=""; });
+
+function photoRouteActive(){
+  var b=document.querySelector('.seg button[data-route="photo"]');
+  return !!(b && b.getAttribute("aria-pressed")==="true" && !document.getElementById("p-e").hidden);
+}
+function setPhoto(f){
+  if (!f || !/^image\//.test(f.type)) return;
+  if (PHOTO.url) URL.revokeObjectURL(PHOTO.url);
+  PHOTO.file=f; PHOTO.url=URL.createObjectURL(f); PHOTO.zoom=false;
+  var img=document.getElementById("e-photo-img");
+  img.src=PHOTO.url; img.style.width="100%";
+  document.getElementById("e-photo-area").hidden=false;
+  document.getElementById("e-photo-zoom").textContent="실제 크기로 보기";
+  updatePhotoUI();
+  if (!E.spots.length) addSpot(true);
+}
+document.getElementById("e-photo-zoom").addEventListener("click",function(){
+  PHOTO.zoom=!PHOTO.zoom;
+  var img=document.getElementById("e-photo-img");
+  img.style.width = PHOTO.zoom ? "auto" : "100%";
+  img.style.maxWidth = PHOTO.zoom ? "none" : "100%";
+  this.textContent = PHOTO.zoom ? "화면 폭에 맞추기" : "실제 크기로 보기";
+});
+document.getElementById("e-photo-clear").addEventListener("click",function(){
+  if (PHOTO.url) URL.revokeObjectURL(PHOTO.url);
+  PHOTO.url=null; PHOTO.file=null;
+  document.getElementById("e-photo-area").hidden=true;
+  eState.textContent="";
+  updatePhotoUI();
+});
+
+function updatePhotoUI(){
+  var btn=document.getElementById("e-read");
+  var has=!!claudeNS.sample;
+  btn.hidden=!has;
+  btn.disabled=!PHOTO.file;
+  if (!PHOTO.file){
+    eState.innerHTML = has ? "" :
+      '이 화면에서는 Claude 읽기를 쓸 수 없습니다. 사진을 올려두고 아래 <b>조성 값 편집</b>에 값을 직접 입력하세요.';
+    return;
+  }
+  if (!has){
+    eState.innerHTML = '이 화면에서는 Claude 읽기를 쓸 수 없습니다. 사진을 보면서 아래 <b>조성 값 편집</b>에 값을 입력하세요.';
+    return;
+  }
+  eState.innerHTML = '<b>Claude로 표 읽기</b>를 누르면 사진 속 원소와 wt%를 옮깁니다' +
+    (claudeNS.sampleImages === false
+      ? ' — 이 화면은 사진 전송을 지원하지 않는다고 알려왔지만, 눌러서 시도해 볼 수 있습니다.'
+      : '.') +
+    ' 직접 입력하실 거면 아래 <b>조성 값 편집</b>을 쓰세요.';
+}
+
+document.getElementById("e-read").addEventListener("click", runPhotoRead);
+document.getElementById("e-read-stop").addEventListener("click", function(){ if (readCtl) readCtl.abort(); });
+
+async function runPhotoRead(){
+  if (!PHOTO.file || !claudeNS.sample) return;
+  var btn=document.getElementById("e-read"), stop=document.getElementById("e-read-stop");
+  btn.disabled=true; stop.hidden=false;
+  eState.innerHTML='<span class="mono">사진을 읽는 중… (10–60초)</span>';
+  readCtl=new AbortController();
+  var prompt =
+    "이 이미지는 SEM-EDS 정량 분석 결과 화면이다. 표에 적힌 원소와 그 중량 백분율(wt%, Weight%)을 그대로 옮겨라.\n" +
+    "- 원자%(Atomic%)가 아니라 중량%를 읽어라. 두 열이 모두 있으면 중량% 열만 쓴다.\n" +
+    "- 스펙트럼/지점이 여러 개면 각각 하나의 항목으로 만든다.\n" +
+    "- 값을 읽을 수 없으면 그 원소는 빼라. 추측해서 채우지 마라.\n" +
+    "오직 아래 형태의 JSON 배열만 출력하라. 예시:\n" +
+    '[{"name":"Spectrum 1","elements":{"C":8.12,"O":27.43,"Fe":52.31}}]';
+  try {
+    var data = await claudeNS.sample.json(prompt, {images:PHOTO.file, modelTier:"default", signal:readCtl.signal});
+    if (!Array.isArray(data)) data = [data];
+    var spots = data.filter(function(d){ return d && d.elements; }).map(function(d, i){
+      var elems={};
+      for (var k in d.elements){
+        var sym=normalizeSym(k), v=parseFloat(d.elements[k]);
+        if (sym && isFinite(v) && v>0) elems[sym]=v;
+      }
+      return {name: String(d.name || ("지점 "+(i+1))), elements: elems};
+    }).filter(function(sp){ return Object.keys(sp.elements).length; });
+    if (!spots.length){
+      eState.innerHTML='표를 찾지 못했습니다. 표가 또렷하게 나온 사진으로 다시 시도하거나, 아래 <b>조성 값 편집</b>에 직접 입력하세요.';
+      return;
+    }
+    E.spots=spots.map(prepSpot); E.selected=null; E.editIdx=0;
+    eState.innerHTML='<span class="flag warn">Claude가 읽은 값</span> '+spots.length+'개 지점을 옮겼습니다. 아래 편집기에서 원본과 대조하고 틀린 값은 고쳐 주세요.';
+    setParseMsg("사진에서 읽은 값입니다. 판독 오류가 있을 수 있으니 저장 전에 원본 화면과 대조해 주세요.");
+    renderEDS();
+  } catch(err){
+    var code = err && err.code;
+    var tail = ' 아래 <b>조성 값 편집</b>에 직접 입력하실 수 있습니다.';
+    var msg;
+    if (code==="cancelled") msg = "중지했습니다.";
+    else if (code==="not_granted") msg = "Claude 사용을 허용하지 않으셨습니다. 페이지를 새로고침하면 다시 물어봅니다." + tail;
+    else if (code==="sampling_disabled") msg = "이 계정에서는 Claude 호출을 쓸 수 없습니다." + tail;
+    else if (code==="images_unavailable") msg = "지금 보고 계신 화면(뷰어)이 사진 전송을 지원하지 않습니다. 브라우저에서 이 페이지를 열면 될 수 있습니다." + tail;
+    else if (code==="image_rejected") msg = "이 이미지 파일은 보낼 수 없습니다 — 형식이 맞지 않거나 너무 큽니다. PNG/JPEG로 다시 저장해 보세요." + tail;
+    else if (code==="rate_limited") msg = "요청이 많아 잠시 막혔습니다. 조금 뒤에 다시 눌러 주세요." + tail;
+    else if (code==="session_expired") msg = "로그인이 만료됐습니다. 새로고침 후 다시 시도해 주세요." + tail;
+    else if (code==="invalid_json") msg = "표를 구조화하지 못했습니다. 표 부분만 크게 찍은 사진으로 다시 시도해 보세요." + tail;
+    else if (code==="refused") msg = "이 이미지는 읽어 주지 않았습니다." + tail;
+    else msg = "읽지 못했습니다 (" + (code||"알 수 없는 오류") + ")." + tail;
+    eState.innerHTML = msg;
+  } finally {
+    btn.disabled=!PHOTO.file; stop.hidden=true; readCtl=null;
+  }
+}
+
+/* ================= 조성 값 편집 ================= */
+var COMMON_ELS = ["C","O","Fe","Si","Al","Ca","Ti","Mn","Cu","S","K","Mg","Na","Zn","Cr","Ni","P","Cl","Ba","Sb"];
+
+function refreshSpot(i){
+  var sp = E.spots[i];
+  if (!sp) return;
+  var np = prepSpot({name: sp.name, elements: sp.raw});
+  np.particleId = sp.particleId;
+  np.source = sp.source;
+  E.spots[i] = np;
+}
+function addSpot(silent){
+  var seed = {};
+  ["C","O","Fe","Si","Al","Ca"].forEach(function(e){ seed[e]=0; });
+  var sp = prepSpot({name:"지점 "+(E.spots.length+1), elements:seed});
+  E.spots.push(sp);
+  E.editIdx = E.spots.length-1;
+  if (!silent) setParseMsg("빈 지점을 추가했습니다. 사진을 보면서 원소별 wt%를 입력하세요.");
+  renderEDS();
+}
+function renderEditor(keep){
+  var panel=document.getElementById("e-edit-panel");
+  panel.hidden = !E.spots.length;
+  if (!E.spots.length) return;
+  if (E.editIdx == null || E.editIdx >= E.spots.length) E.editIdx = 0;
+  var sp = E.spots[E.editIdx];
+  var keys = Object.keys(sp.raw);
+  var sum = keys.reduce(function(a,k){ return a + (Number(sp.raw[k])||0); }, 0);
+  document.getElementById("e-edit-note").textContent = keys.length + "개 원소 · 입력 합계 " + sum.toFixed(2) + "%";
+  if (keep) return;
+
+  var sel=document.getElementById("e-edit-spot");
+  sel.innerHTML = E.spots.map(function(s,i){
+    return '<option value="'+i+'"'+(i===E.editIdx?' selected':'')+'>'+esc(s.name)+'</option>';
+  }).join("");
+  document.getElementById("e-edit-name").value = sp.name;
+
+  var host=document.getElementById("e-edit-rows");
+  host.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px">' +
+    keys.map(function(k){
+      return '<div style="display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:var(--surface-2)">'+
+        '<select class="ed-el" data-k="'+k+'" style="width:88px">'+symbolOptions(k)+'</select>'+
+        '<input type="number" class="ed-v" data-k="'+k+'" value="'+(Number(sp.raw[k])||0)+'" step="0.01" min="0" style="flex:1;min-width:60px">'+
+        '<span class="mono" style="font-size:11px;color:var(--ink-3)">%</span>'+
+        '<button class="btn ed-del" data-k="'+k+'" type="button" style="padding:3px 7px">✕</button></div>';
+    }).join("") + '</div>';
+
+  host.querySelectorAll(".ed-v").forEach(function(inp){
+    inp.addEventListener("input", function(){
+      var v = parseFloat(inp.value);
+      E.spots[E.editIdx].raw[inp.dataset.k] = isFinite(v) ? Math.max(0,v) : 0;
+      refreshSpot(E.editIdx);
+      renderEDS(true);
+    });
+  });
+  host.querySelectorAll(".ed-el").forEach(function(s2){
+    s2.addEventListener("change", function(){
+      var oldK=s2.dataset.k, newK=s2.value;
+      var raw=E.spots[E.editIdx].raw;
+      if (!newK || newK===oldK || raw[newK]!=null){ renderEditor(); return; }
+      raw[newK]=raw[oldK]; delete raw[oldK];
+      refreshSpot(E.editIdx); renderEDS();
+    });
+  });
+  host.querySelectorAll(".ed-del").forEach(function(b){
+    b.addEventListener("click", function(){
+      delete E.spots[E.editIdx].raw[b.dataset.k];
+      refreshSpot(E.editIdx); renderEDS();
+    });
+  });
+}
+document.getElementById("e-edit-spot").addEventListener("change", function(){
+  E.editIdx = +this.value; renderEDS();
+});
+document.getElementById("e-edit-name").addEventListener("input", function(){
+  if (E.spots[E.editIdx]){ E.spots[E.editIdx].name = this.value || ("지점 "+(E.editIdx+1)); renderEDS(true); }
+});
+document.getElementById("e-spot-add").addEventListener("click", function(){ addSpot(); });
+document.getElementById("e-spot-del").addEventListener("click", function(){
+  if (!E.spots.length) return;
+  E.spots.splice(E.editIdx,1);
+  E.editIdx = Math.max(0, E.editIdx-1);
+  E.selected=null;
+  renderEDS();
+});
+document.getElementById("e-row-add").addEventListener("click", function(){
+  var sp=E.spots[E.editIdx]; if(!sp) return;
+  var next = COMMON_ELS.filter(function(e){ return sp.raw[e]==null; })[0];
+  if (!next){ setParseMsg("자주 쓰는 원소는 모두 들어가 있습니다. 원소 칸의 목록에서 다른 원소를 고르세요."); return; }
+  sp.raw[next]=0;
+  refreshSpot(E.editIdx); renderEDS();
+});
+
+
+/* report draft */
+var draftCtl=null;
+document.getElementById("r-draft").addEventListener("click", async function(){
+  var out=document.getElementById("r-draft-out"), btn=this, stop=document.getElementById("r-stop");
+  if (!claudeNS.sample){ out.textContent="이 화면에서는 초안 작성을 쓸 수 없습니다."; return; }
+  var lines=[];
+  if (S.result){
+    var counts={}; CLS.forEach(function(c){counts[c]=0});
+    S.result.props.forEach(function(p){counts[p.cls]++});
+    var d=S.result.props.map(lenOf);
+    lines.push("[형상] 이미지: "+S.imgName+(S.isExample?" (합성 예제)":"")+
+      ", 검출 "+S.result.props.length+"개, 단위 "+lenLabel()+
+      ", 평균 지름 "+(d.length?(d.reduce(function(a,b){return a+b},0)/d.length).toFixed(2):"0")+
+      ", 형상 분포 "+CLS.map(function(c){return c+" "+counts[c]}).join(", ")+
+      ", 임계 (종횡비≥"+S.ar+", 고형도<"+S.sol+", 원형도≥"+S.circ+"), 스케일 "+(S.umPerPx==null?"미보정":(S.umPerPx*1000).toFixed(2)+" nm/px"));
+  }
+  if (E.spots.length){
+    var c2={}; E.spots.forEach(function(s){ c2[s.v2]=(c2[s.v2]||0)+1; });
+    lines.push("[조성] 지점 "+E.spots.length+"곳, 기준 "+(E.basis==="metal"?"금속기준(C·O 제외)":"전체기준")+
+      ", v2 판정 분포 "+Object.keys(c2).map(function(k){return k+" "+c2[k]}).join(", ")+
+      ", v1 미분류 "+E.spots.filter(function(s){return s.v1==="미분류"}).length+"곳");
+  }
+  if (!lines.length){ out.textContent="먼저 이미지를 분석하거나 EDS 값을 넣어 주세요."; return; }
+  btn.disabled=true; stop.hidden=false; out.textContent="작성 중…";
+  draftCtl=new AbortController();
+  try {
+    await claudeNS.sample(
+      "다음은 SEM-EDS 입자 분석 결과 수치다. 실험 노트에 그대로 붙일 수 있는 한국어 문단 2개를 써라.\n" +
+      "- 첫 문단은 무엇을 어떻게 측정했고 결과가 어땠는지 서술한다.\n" +
+      "- 둘째 문단은 이 수치만으로 단정할 수 없는 점, 다음에 확인할 것을 적는다.\n" +
+      "- 수치는 준 값만 쓰고 새로 만들어내지 마라. 과장 없이 담담하게 쓴다.\n" +
+      "- 제목이나 머리말 없이 문단만 출력하라.\n\n" + lines.join("\n"),
+      {signal:draftCtl.signal, onText:function(u){ out.textContent=u.text; }}
+    );
+  } catch(err){
+    if (err && err.code==="cancelled") out.textContent = err.text || "중지했습니다.";
+    else out.textContent = (err && err.text) ? err.text + "\n\n(중간에 끊겼습니다)" : "작성하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  } finally { btn.disabled=false; stop.hidden=true; draftCtl=null; }
+});
+document.getElementById("r-stop").addEventListener("click",function(){ if(draftCtl) draftCtl.abort(); });
+
+/* tabs */
+var panels={"tab-s":"p-s","tab-e":"p-e","tab-u":"p-u","tab-d":"p-d","tab-r":"p-r"};
+document.querySelectorAll('nav.tabs button').forEach(function(btn){
+  btn.addEventListener("click",function(){
+    Object.keys(panels).forEach(function(id){
+      var on=id===btn.id;
+      document.getElementById(id).setAttribute("aria-selected",String(on));
+      document.getElementById(panels[id]).hidden=!on;
+    });
+    if (btn.id==="tab-r") renderReport();
+    if (btn.id==="tab-u") renderUnified();
+    if (btn.id==="tab-d" && window.ACCUM) window.ACCUM.render();
+  });
+});
+
+/* theme re-render */
+try{
+  var mq=matchMedia("(prefers-color-scheme: dark)");
+  var re=function(){ if(S.result) renderShape(); if(E.spots.length) renderEDS(); };
+  if (mq.addEventListener) mq.addEventListener("change",re);
+  new MutationObserver(re).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+}catch(e){}
+
+/* capabilities (late, optional) */
+useCap("downloads").then(function(d){ claudeNS.downloads = d; });
+useCap("sample").then(function(s){
+  claudeNS.sample = s;
+  if (!s){
+    document.getElementById("r-draft").disabled = true;
+    updatePhotoUI();
+    return;
+  }
+  // limits()가 이미지를 못 쓴다고 해도 업로드를 막지 않는다 — 실제로 호출해 보고
+  // 거절당하면 그때 정확한 이유를 알려주는 편이 낫다.
+  s.limits().then(function(lim){
+    claudeNS.sampleImages = !!(lim && lim.images);
+    updatePhotoUI();
+  }).catch(function(){ updatePhotoUI(); });
+  updatePhotoUI();
+});
+
+
+/* ================= 원소 맵 → 입자별 조성 ================= */
+var MAPS = { items:[], result:null };
+
+function guessElement(filename){
+  var base = filename.replace(/\.[^.]+$/,"");
+  var toks = base.split(/[^A-Za-z]+/).filter(Boolean);
+  for (var i=0;i<toks.length;i++){
+    var t = toks[i];
+    var whole = normalizeSym(t);
+    if (whole) return whole;
+    // "FeK", "SiKa1" 처럼 선 이름이 붙은 경우 앞 1~2글자
+    var two = normalizeSym(t.slice(0,2));
+    if (two && /^[A-Z][a-z]/.test(t.slice(0,2))) return two;
+    var one = normalizeSym(t.slice(0,1));
+    if (one && t.length>1 && /^[A-Z]/.test(t)) return one;
+  }
+  return "";
+}
+function symbolOptions(sel){
+  return '<option value="">원소 선택</option>' + SYMBOLS.map(function(x){
+    return '<option value="'+x+'"'+(x===sel?' selected':'')+'>'+x+'</option>';
+  }).join("");
+}
+function renderMapList(){
+  var host=document.getElementById("m-list");
+  if (!MAPS.items.length){
+    host.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">아직 올린 맵이 없습니다. 원소 맵을 3장 이상 올려야 조성 비율이 의미를 갖습니다.</p>';
+  } else {
+    host.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + MAPS.items.map(function(it,i){
+      return '<div style="display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:7px 10px;background:var(--surface-2)">'+
+        '<img src="'+it.url+'" alt="" width="34" height="34" style="width:34px;height:34px;object-fit:cover;border-radius:3px;border:1px solid var(--line-2)">'+
+        '<div class="mono" style="flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(it.name)+'</div>'+
+        '<select data-i="'+i+'" class="m-el" style="width:104px">'+symbolOptions(it.el)+'</select>'+
+        '<button class="btn m-del" data-i="'+i+'" type="button" style="padding:4px 8px">삭제</button></div>';
+    }).join("") + '</div>';
+    host.querySelectorAll(".m-el").forEach(function(sel){
+      sel.addEventListener("change", function(){
+        MAPS.items[+sel.dataset.i].el = sel.value;
+        updateMapRunState();
+      });
+    });
+    host.querySelectorAll(".m-del").forEach(function(b){
+      b.addEventListener("click", function(){
+        var it = MAPS.items[+b.dataset.i];
+        if (it && it.url) URL.revokeObjectURL(it.url);
+        MAPS.items.splice(+b.dataset.i,1);
+        renderMapList();
+      });
+    });
+  }
+  updateMapRunState();
+}
+function updateMapRunState(){
+  var allTagged = MAPS.items.length>0 && MAPS.items.every(function(it){ return it.el; });
+  var btn=document.getElementById("m-run");
+  btn.disabled = !(allTagged && S.result);
+  btn.textContent = !S.result ? "먼저 SEM 이미지를 분석하세요"
+    : (MAPS.items.length && !allTagged ? "각 맵의 원소를 골라주세요" : "입자별 조성 계산");
+}
+function addMapFiles(files){
+  var list = Array.prototype.slice.call(files||[]).filter(function(f){ return /^image\//.test(f.type); });
+  var pending = list.length;
+  if (!pending) return;
+  list.forEach(function(f){
+    var url = URL.createObjectURL(f);
+    var im = new Image();
+    im.onload = function(){
+      MAPS.items.push({name:f.name, el:guessElement(f.name), img:im, url:url});
+      if (!--pending) renderMapList();
+    };
+    im.onerror = function(){ if (!--pending) renderMapList(); };
+    im.src = url;
+  });
+}
+function computeMaps(){
+  var R = S.result;
+  if (!R || !MAPS.items.length) return;
+  var W=R.W, H=R.H, per={}, i, k;
+  R.props.forEach(function(p){ per[p.id] = {}; });
+  var c=document.createElement("canvas"); c.width=W; c.height=H;
+  var cx=c.getContext("2d",{willReadFrequently:true});
+  MAPS.items.forEach(function(it){
+    if (!it.el) return;
+    cx.clearRect(0,0,W,H);
+    cx.drawImage(it.img, 0, 0, W, H);
+    var d=cx.getImageData(0,0,W,H).data;
+    var sums={}, cnts={}, bgSum=0, bgN=0;
+    for (i=0;i<W*H;i++){
+      var o=i*4, g0=0.299*d[o]+0.587*d[o+1]+0.114*d[o+2];
+      var L=R.lab[i];
+      if (L){ sums[L]=(sums[L]||0)+g0; cnts[L]=(cnts[L]||0)+1; }
+      else { bgSum+=g0; bgN++; }
+    }
+    it.bg = bgN ? bgSum/bgN : 0;
+    R.props.forEach(function(p){
+      var m = cnts[p.id] ? sums[p.id]/cnts[p.id] : 0;
+      // 입자 밖 평균 세기를 빼 바탕 잡음을 덜어낸다
+      per[p.id][it.el] = Math.max(0, m - it.bg);
+    });
+  });
+  var out={}, made=0;
+  R.props.forEach(function(p){
+    var e=per[p.id], tot=0;
+    for (k in e) tot += e[k];
+    if (tot <= 0) return;
+    var elems={};
+    for (k in e) elems[k] = e[k]/tot*100;
+    var sp = prepSpot({name:"입자 #"+p.id, elements:elems});
+    sp.source="map"; sp.particleId=p.id;
+    out[p.id]=sp; made++;
+  });
+  MAPS.result = made ? out : null;
+  var nEl = MAPS.items.filter(function(it){return it.el}).length;
+  setParseMsg(made
+    ? "<b>맵 "+nEl+"종으로 입자 "+made+"개의 조성을 추정했습니다.</b> 세기 기반 반정량 값이며, 통합 결과 탭에서 형상과 함께 볼 수 있습니다."
+    : "맵에서 입자 영역의 세기를 얻지 못했습니다. 맵이 SEM 이미지와 같은 시야인지 확인해 주세요.", made?null:"bad");
+  renderUnified(); renderReport();
+}
+
+/* ================= 지점 ↔ 입자 연결 ================= */
+var LINK = { active:null };
+var linkBar = document.createElement("div");
+linkBar.className = "callout";
+linkBar.style.marginBottom = "12px";
+linkBar.hidden = true;
+wrap.parentNode.insertBefore(linkBar, wrap);
+function setLinkBar(){
+  if (LINK.active == null || !E.spots[LINK.active]){
+    linkBar.hidden = true;
+    if (!S.calibMode) wrap.classList.remove("calib");
+    return;
+  }
+  linkBar.hidden = false;
+  wrap.classList.add("calib");
+  linkBar.innerHTML = '<b>' + esc(E.spots[LINK.active].name) + '</b> 을(를) 연결할 입자를 이미지에서 클릭하세요. ' +
+    '<button class="btn" id="link-cancel" type="button" style="margin-left:8px;padding:3px 9px">취소</button>';
+  document.getElementById("link-cancel").addEventListener("click", function(){
+    LINK.active = null; setLinkBar();
+  });
+}
+function startLink(i){
+  LINK.active = i;
+  setLinkBar();
+  document.getElementById("tab-s").click();
+  wrap.scrollIntoView({block:"center", behavior:"smooth"});
+}
+function renderLink(){
+  var host=document.getElementById("e-link-list");
+  var panel=document.getElementById("e-link-panel");
+  panel.hidden = !E.spots.length;
+  if (!E.spots.length) return;
+  var linked = E.spots.filter(function(sp){ return sp.particleId; }).length;
+  document.getElementById("e-link-note").textContent =
+    !S.result ? "형상 분석 먼저" : linked + " / " + E.spots.length + "개 연결됨";
+  host.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + E.spots.map(function(sp,i){
+    var p = sp.particleId && S.result ? S.result.props.filter(function(q){return q.id===sp.particleId})[0] : null;
+    return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:4px;padding:7px 10px;background:var(--surface-2)">'+
+      '<div style="flex:1;min-width:120px;font-size:12.5px">'+esc(sp.name)+'</div>'+
+      '<div class="mono" style="font-size:11.5px;color:'+(p?'var(--ink)':'var(--ink-3)')+'">'+
+        (p ? '입자 #'+p.id+' · '+p.cls : '연결 안 됨')+'</div>'+
+      '<button class="btn link-go" data-i="'+i+'" type="button" style="padding:4px 9px"'+(S.result?'':' disabled')+'>'+(p?'다시 연결':'연결')+'</button>'+
+      (p ? '<button class="btn link-off" data-i="'+i+'" type="button" style="padding:4px 9px">해제</button>' : '')+
+    '</div>';
+  }).join("") + '</div>';
+  host.querySelectorAll(".link-go").forEach(function(b){
+    b.addEventListener("click", function(){ startLink(+b.dataset.i); });
+  });
+  host.querySelectorAll(".link-off").forEach(function(b){
+    b.addEventListener("click", function(){ E.spots[+b.dataset.i].particleId=null; renderEDS(); });
+  });
+}
+
+/* ================= 통합 결과 ================= */
+function unifiedRows(){
+  if (!S.result) return [];
+  return S.result.props.map(function(p){
+    var comp=null, src=null;
+    if (MAPS.result && MAPS.result[p.id]){ comp=MAPS.result[p.id]; src="맵"; }
+    else {
+      var sp = E.spots.filter(function(q){ return q.particleId===p.id; })[0];
+      if (sp){ comp=sp; src="지점"; }
+    }
+    return {p:p, comp:comp, src:src, v1:comp?ruleV1(comp):null, v2:comp?ruleV2(comp):null};
+  });
+}
+function renderUnified(){
+  var rows = unifiedRows();
+  var withComp = rows.filter(function(r){ return r.comp; });
+  var empty = document.getElementById("u-empty");
+  var table = document.getElementById("u-table");
+  document.getElementById("u-note").textContent = S.result
+    ? "입자 " + rows.length + "개 중 " + withComp.length + "개에 조성이 붙었습니다" : "형상 분석 먼저";
+  document.getElementById("u-csv").hidden = !withComp.length;
+
+  document.getElementById("u-kpis").innerHTML =
+    kpiHTML("입자", fmt(rows.length), "개", S.result ? esc(S.imgName) : "이미지 없음") +
+    kpiHTML("조성 붙은 입자", fmt(withComp.length), "개", rows.length? (withComp.length/rows.length*100).toFixed(0)+"%" : "—") +
+    kpiHTML("조성 출처", withComp.length ? (MAPS.result?"원소 맵":"지점 스펙트럼") : "—", "",
+            MAPS.result ? "반정량 · " + MAPS.items.filter(function(i){return i.el}).map(function(i){return i.el}).join(" ") : "") +
+    kpiHTML("v1 미분류", fmt(withComp.filter(function(r){return r.v1==="미분류"}).length), "개",
+            withComp.length ? "v2 기타 " + withComp.filter(function(r){return r.v2==="기타/미분류"}).length + "개" : "—");
+
+  if (!withComp.length){
+    empty.innerHTML = '<p style="font-size:12.5px;color:var(--ink-3)">' +
+      (!S.result ? '형상 탭에서 SEM 이미지를 먼저 분석하세요.'
+       : '아직 조성이 붙은 입자가 없습니다. 조성 탭에서 <b>원소 맵 이미지</b>를 올리면 입자마다 자동으로 붙고, 지점 스펙트럼은 <b>입자와 연결</b>에서 이어 붙일 수 있습니다.') + '</p>';
+    table.innerHTML = "";
+    document.getElementById("u-cross-panel").hidden = true;
+    return;
+  }
+  empty.innerHTML = "";
+
+  var allEls = {};
+  withComp.forEach(function(r){ for (var kk in r.comp.total) allEls[kk]=1; });
+  var els = Object.keys(allEls).sort(function(a,b){
+    var sa=0, sb=0;
+    withComp.forEach(function(r){ sa+=g(r.comp.total,a); sb+=g(r.comp.total,b); });
+    return sb-sa;
+  }).slice(0,6);
+  var u=lenLabel(), k2=S.umPerPx==null?1:S.umPerPx;
+
+  table.innerHTML = "<thead><tr><th class='plain'>#</th><th class='plain'>형상</th>"+
+    "<th class='n plain'>지름 ("+u+")</th><th class='n plain'>원형도</th><th class='n plain'>고형도</th>"+
+    els.map(function(e){ return "<th class='n plain'>"+e+"</th>"; }).join("")+
+    "<th class='plain'>v2 판정</th><th class='plain'>출처</th></tr></thead><tbody>"+
+    withComp.map(function(r){
+      var b = E.basis==="metal" ? r.comp.metal : r.comp.total;
+      return "<tr data-id='"+r.p.id+"'"+(S.selected===r.p.id?" class='sel'":"")+">"+
+        "<td class='n'>"+r.p.id+"</td>"+
+        "<td><i class='swatch' style='background:"+cssv(COL[r.p.cls])+";margin-right:6px'></i>"+r.p.cls+"</td>"+
+        "<td class='n'>"+(r.p.eqd*k2).toFixed(S.umPerPx==null?1:2)+"</td>"+
+        "<td class='n'>"+r.p.circ.toFixed(3)+"</td>"+
+        "<td class='n'>"+r.p.sol.toFixed(3)+"</td>"+
+        els.map(function(e){
+          var hide = (e==="C"||e==="O") && E.basis==="metal";
+          return "<td class='n'"+(hide?" style='color:var(--ink-3)'":"")+">"+(hide?"—":g(b,e).toFixed(1))+"</td>";
+        }).join("")+
+        "<td><i class='swatch' style='background:"+cssv(COL2[r.v2])+";margin-right:6px'></i>"+r.v2+"</td>"+
+        "<td class='mono' style='font-size:11px;color:var(--ink-3)'>"+r.src+"</td></tr>";
+    }).join("")+"</tbody>";
+  table.querySelectorAll("tbody tr").forEach(function(tr){
+    tr.addEventListener("click", function(){
+      var id=+tr.dataset.id;
+      S.selected = S.selected===id ? null : id;
+      renderShape();
+    });
+  });
+
+  // 형상 × 조성 교차
+  document.getElementById("u-cross-panel").hidden = false;
+  var cross={}, used={};
+  CLS.forEach(function(c){ cross[c]={}; });
+  withComp.forEach(function(r){
+    cross[r.p.cls][r.v2] = (cross[r.p.cls][r.v2]||0) + 1;
+    used[r.v2]=1;
+  });
+  var usedCls = CLS2.filter(function(c){ return used[c]; });
+  var maxTot = Math.max.apply(null, CLS.map(function(c){
+    return usedCls.reduce(function(a,x){ return a+(cross[c][x]||0); },0);
+  })) || 1;
+  var host=document.getElementById("u-cross"); host.innerHTML="";
+  var W=520, rowH=28, gap=10, padL=72, padR=40;
+  var H=CLS.length*(rowH+gap)-gap+16;
+  var svg=el("svg",{viewBox:"0 0 "+W+" "+H, width:"100%", role:"img"});
+  var plotW=W-padL-padR;
+  CLS.forEach(function(c,i){
+    var y=i*(rowH+gap);
+    var tot=usedCls.reduce(function(a,x){ return a+(cross[c][x]||0); },0);
+    svg.appendChild(el("text",{x:padL-10,y:y+rowH/2+4,"text-anchor":"end","font-size":"11"},[txt(c)]));
+    svg.appendChild(el("rect",{x:padL,y:y+4,width:plotW,height:rowH-8,rx:3,fill:cssv("--surface-3")}));
+    var x=padL;
+    usedCls.forEach(function(cc){
+      var v=cross[c][cc]||0; if(!v) return;
+      var w=v/maxTot*plotW;
+      var rect=el("rect",{x:x,y:y+4,width:Math.max(w-2,0.8),height:rowH-8,rx:2,fill:cssv(COL2[cc])});
+      rect.style.cursor="crosshair";
+      bindTip(rect,function(){ return '<span class="hl">'+c+'</span> · '+cc+'<br>'+v+'개'; });
+      svg.appendChild(rect);
+      x+=w;
+    });
+    svg.appendChild(el("text",{x:W-padR+8,y:y+rowH/2+4,"font-size":"10.5",fill:cssv("--ink-3")},[txt(String(tot))]));
+  });
+  host.appendChild(svg);
+  document.getElementById("u-cross-legend").innerHTML = usedCls.map(function(c){
+    return '<span><i class="swatch" style="background:'+cssv(COL2[c])+'"></i>'+c+'</span>';
+  }).join("");
+}
+
+/* ================= 새 컨트롤 배선 ================= */
+document.querySelectorAll('.seg button[data-route]').forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll('.seg button[data-route]').forEach(function(x){
+      x.setAttribute("aria-pressed", String(x===b));
+      document.getElementById("route-"+x.dataset.route).hidden = (x!==b);
+    });
+  });
+});
+var mDrop=document.getElementById("m-drop"), mFile=document.getElementById("m-file");
+mDrop.addEventListener("click",function(){ mFile.click(); });
+mDrop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); mFile.click(); } });
+["dragenter","dragover"].forEach(function(ev){ mDrop.addEventListener(ev,function(e){e.preventDefault();mDrop.classList.add("over")}); });
+["dragleave","drop"].forEach(function(ev){ mDrop.addEventListener(ev,function(e){e.preventDefault();mDrop.classList.remove("over")}); });
+mDrop.addEventListener("drop",function(e){ addMapFiles(e.dataTransfer.files); });
+mFile.addEventListener("change",function(e){ addMapFiles(e.target.files); mFile.value=""; });
+document.getElementById("m-run").addEventListener("click", computeMaps);
+document.getElementById("m-clear").addEventListener("click", function(){
+  MAPS.items.forEach(function(it){ if(it.url) URL.revokeObjectURL(it.url); });
+  MAPS.items=[]; MAPS.result=null;
+  renderMapList(); setParseMsg(""); renderUnified(); renderReport();
+});
+document.getElementById("e-autolink").addEventListener("click", function(){
+  if (!S.result) return;
+  var ids={}; S.result.props.forEach(function(p){ ids[p.id]=1; });
+  var hit=0;
+  E.spots.forEach(function(sp){
+    var m = String(sp.name).match(/(\d+)\s*$/);
+    if (m && ids[+m[1]]){ sp.particleId = +m[1]; hit++; }
+  });
+  setParseMsg(hit ? "이름 속 번호로 "+hit+"개를 연결했습니다. 아래에서 맞는지 확인하세요."
+                  : "이름 끝의 번호와 일치하는 입자를 찾지 못했습니다. 연결 버튼으로 직접 지정해 주세요.", hit?null:"bad");
+  renderEDS();
+});
+document.getElementById("e-unlink").addEventListener("click", function(){
+  E.spots.forEach(function(sp){ sp.particleId=null; });
+  renderEDS();
+});
+document.getElementById("u-csv").addEventListener("click", function(){
+  var rows = unifiedRows().filter(function(r){ return r.comp; });
+  var allEls={};
+  rows.forEach(function(r){ for(var kk in r.comp.total) allEls[kk]=1; });
+  var els=Object.keys(allEls);
+  var u=lenLabel(), k2=S.umPerPx==null?1:S.umPerPx;
+  var out=[["particle_id","shape_class","eq_diameter_"+u,"feret_max_"+u,"circularity","solidity","aspect_ratio",
+            "comp_source","comp_basis"].concat(els).concat(["v1","v2"])];
+  rows.forEach(function(r){
+    var b = E.basis==="metal" ? r.comp.metal : r.comp.total;
+    out.push([r.p.id, r.p.cls, (r.p.eqd*k2).toFixed(4), (r.p.feret*k2).toFixed(4),
+      r.p.circ.toFixed(4), r.p.sol.toFixed(4), r.p.ar.toFixed(4),
+      r.src==="맵"?"element_map_semiquant":"point_spectrum", E.basis]
+      .concat(els.map(function(e){ return b[e]==null?"":b[e].toFixed(3); }))
+      .concat([r.v1, r.v2]));
+  });
+  saveCSV("particles_with_composition.csv", out);
+});
+
+renderMapList();
+
+/* 누적 모듈(accum.js)이 쓰는 다리. 상태 객체는 참조로 넘긴다. */
+window.APP = {
+  S:S, E:E, MAPS:MAPS, claudeNS:claudeNS, useCap:useCap,
+  CLS:CLS, CLS2:CLS2, COL:COL, COL2:COL2,
+  el:el, txt:txt, cssv:cssv, fmt:fmt, esc:esc, bindTip:bindTip, kpiHTML:kpiHTML,
+  prepSpot:prepSpot, ruleV1:ruleV1, ruleV2:ruleV2, toCSV:toCSV, saveCSV:saveCSV,
+  lenLabel:lenLabel, lenOf:lenOf, unifiedRows:unifiedRows,
+  renderShape:function(){ renderShape(); }, renderEDS:function(){ renderEDS(); },
+  srcCanvas:srcCanvas
+};
+function fireRender(){ try{ document.dispatchEvent(new CustomEvent("app:render")); }catch(e){} }
+
+renderReport();
+loadImage("example-sem.png","합성 예제 SEM 필드",true);
+})();
+</script>
+<script src="accum.js"></script>
+</body>
+</html>
