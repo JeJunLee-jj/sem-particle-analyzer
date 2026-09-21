@@ -9,7 +9,16 @@
 
 ## 바로 써보기
 
-`docs/index.html`을 브라우저로 열면 됩니다. 합성 예제 이미지가 이미 분석된 상태로 뜹니다.
+**https://jejunlee-jj.github.io/sem-particle-analyzer/**
+
+설치도 압축 풀기도 필요 없습니다. 합성 예제 이미지가 이미 분석된 상태로 뜹니다.
+
+로컬 파일로 쓰시려면 `docs/index.html`을 브라우저로 열면 됩니다. 단, **파일 네 개가
+같은 폴더에 있어야 합니다** — `index.html`, `ip.js`, `accum.js`, `example-sem.png`.
+
+> 압축 파일을 풀지 않고 탐색기의 압축 폴더 보기에서 `index.html`만 더블클릭하면
+> 윈도우가 그 파일 하나만 임시 폴더로 꺼내 열기 때문에 분석이 동작하지 않습니다.
+> 반드시 압축을 먼저 전부 푸세요. (이 경우 페이지가 무엇이 빠졌는지 알려줍니다.)
 
 GitHub Pages로 공개하려면 저장소 설정에서 **Settings → Pages → Source: `main` 브랜치의
 `/docs` 폴더**를 선택하세요. 빌드 과정이 없습니다.

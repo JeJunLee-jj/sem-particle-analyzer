@@ -611,6 +611,57 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
 <script>
 (function(){
 "use strict";
+
+/* 이 페이지는 같은 폴더의 ip.js · accum.js가 있어야 돈다. 압축을 풀지 않고
+   압축 파일 안에서 index.html만 열면 윈도우가 그 파일 하나만 임시 폴더로
+   꺼내 열기 때문에, 화면은 뜨지만 분석이 전부 실패한다. 그 상황을
+   "분석 중 오류" 같은 모호한 문구 대신 분명히 알려준다. */
+function missingFileNotice(missing){
+  var nav = document.querySelector("nav.tabs");
+  if (nav) nav.hidden = true;
+  var main = document.querySelector("main");
+  if (!main) return;
+  main.innerHTML =
+    '<div class="panel" style="border-color:var(--critical);max-width:760px">' +
+      '<div class="hd" style="border-bottom-color:var(--critical)">' +
+        '<h2>함께 있어야 할 파일이 빠졌습니다</h2>' +
+        '<span class="note">' + missing.join(" · ") + ' 없음</span>' +
+      '</div>' +
+      '<div class="bd" style="display:flex;flex-direction:column;gap:16px">' +
+        '<p class="lede">이 도구는 파일 네 개가 <b>같은 폴더에</b> 있어야 동작합니다. ' +
+          '지금 <span class="mono">' + missing.join(", ") + '</span>을(를) 찾지 못했습니다.</p>' +
+        '<pre class="mono" style="margin:0;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;font-size:12px;line-height:1.7">' +
+          ['index.html','ip.js','accum.js','example-sem.png'].join('<br>') + '</pre>' +
+        '<div>' +
+          '<div class="eyebrow" style="margin-bottom:6px">흔한 원인</div>' +
+          '<p class="lede">압축 파일을 <b>풀지 않고</b> 탐색기의 압축 폴더 보기에서 index.html을 ' +
+            '바로 더블클릭한 경우입니다. 윈도우는 그럴 때 클릭한 파일 하나만 임시 폴더로 꺼내 엽니다.</p>' +
+        '</div>' +
+        '<div>' +
+          '<div class="eyebrow" style="margin-bottom:6px">해결</div>' +
+          '<ol style="margin:0;padding-left:20px;font-size:13px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px">' +
+            '<li>압축 파일을 <b>마우스 오른쪽 → 압축 풀기</b>로 전부 푼 뒤, 풀린 폴더의 index.html을 여세요.</li>' +
+            '<li>또는 배포된 주소에서 바로 쓰세요 — 설치도 압축 풀기도 필요 없습니다.<br>' +
+              '<a class="mono" style="font-size:12.5px" href="https://jejunlee-jj.github.io/sem-particle-analyzer/">jejunlee-jj.github.io/sem-particle-analyzer/</a></li>' +
+          '</ol>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+if (!window.IP){ missingFileNotice(["ip.js"]); return; }
+window.addEventListener("load", function(){
+  if (window.ACCUM) return;
+  // accum.js만 빠진 경우: 나머지는 멀쩡히 쓸 수 있으니 누적 기능만 막고 알린다
+  var save = document.getElementById("s-save-field");
+  if (save) save.disabled = true;
+  var st = document.getElementById("s-save-state");
+  if (st) st.innerHTML = '<span class="flag bad">accum.js 없음</span> 누적 기능을 쓸 수 없습니다.';
+  var fields = document.getElementById("d-fields");
+  if (fields) fields.innerHTML = '<p style="font-size:12.5px;color:var(--ink-3)">' +
+    '<b>accum.js를 찾지 못했습니다.</b> 이 파일이 index.html과 같은 폴더에 있어야 시야를 누적할 수 있습니다. ' +
+    '압축을 푼 폴더에서 열었는지 확인해 주세요.</p>';
+});
+
 var SVGNS="http://www.w3.org/2000/svg", tipEl=document.getElementById("tip");
 function el(t,a,k){var n=document.createElementNS(SVGNS,t);if(a)for(var q in a)n.setAttribute(q,a[q]);if(k)k.forEach(function(c){n.appendChild(c)});return n}
 function txt(s){return document.createTextNode(s)}
@@ -666,7 +717,9 @@ function loadImage(src, name, isExample){
     runShape();
   };
   im.onerror = function(){
-    document.getElementById("s-fileinfo").textContent = "이미지를 읽지 못했습니다.";
+    document.getElementById("s-fileinfo").innerHTML = isExample
+      ? '<span class="flag bad">example-sem.png 없음</span> 예제 이미지를 찾지 못했습니다. 직접 찍은 사진을 올리면 분석은 정상 동작합니다.'
+      : "이미지를 읽지 못했습니다.";
   };
   im.src = src;
 }
