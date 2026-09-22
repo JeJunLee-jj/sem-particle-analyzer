@@ -800,6 +800,7 @@ function renderShape(){
   document.getElementById("s-hist-unit").textContent = "등가원 지름 (" + lenLabel() + ")";
   document.getElementById("s-csv").hidden = !n;
   renderUnified();
+  renderMapList();   // 크롭·해상도가 바뀌면 맵 경고도 다시 판단해야 한다
   renderReport();
   fireRender();
 }
@@ -1856,22 +1857,84 @@ function symbolOptions(sel){
     return '<option value="'+x+'"'+(x===sel?' selected':'')+'>'+x+'</option>';
   }).join("");
 }
+/* 맵과 SEM 이미지가 같은 시야·같은 프레임인지 본다.
+   페이지는 맵을 늘려 맞출 뿐 위치를 맞춰주지 않으므로, 프레임이 다르면
+   엉뚱한 자리의 밝기를 읽고도 그럴듯한 숫자를 낸다. 그걸 미리 잡는다. */
+function mapGeometry(it){
+  if (!S.img || !it.img || !it.img.naturalWidth) return null;
+  var am = it.img.naturalWidth / it.img.naturalHeight;
+  var as = S.img.width / S.img.height;
+  return {
+    mw: it.img.naturalWidth, mh: it.img.naturalHeight,
+    sw: S.img.width, sh: S.img.height,
+    diff: Math.abs(am - as) / as
+  };
+}
+function mapWarnings(){
+  var out = [];
+  if (!S.result) return out;
+  var off = MAPS.items.filter(function(it){
+    var g = mapGeometry(it);
+    return g && g.diff > 0.02;
+  });
+  if (off.length){
+    out.push({
+      level: "bad",
+      text: "<b>가로세로 비율이 SEM 이미지와 다른 맵이 " + off.length + "장 있습니다</b> (" +
+        off.map(function(it){ return esc(it.name); }).join(", ") + "). " +
+        "맵은 늘려서 겹쳐지므로, 같은 시야를 다르게 잘라 저장했다면 입자 위치가 어긋난 채 " +
+        "밝기를 읽습니다. 숫자는 나오지만 믿을 수 없습니다. SEM 이미지와 같은 프레임으로 다시 저장해 주세요."
+    });
+  }
+  var tagged = MAPS.items.filter(function(it){ return it.el; }).length;
+  if (tagged > 0 && tagged < 3){
+    out.push({
+      level: "warn",
+      text: "원소가 " + tagged + "종뿐입니다. 올린 원소만으로 100%를 나누므로, 실제로 있는 다른 원소는 " +
+        "없는 셈이 됩니다. 관심 원소를 빠짐없이 올리셔야 비율이 의미를 갖습니다."
+    });
+  }
+  if (S.result.cropBottom > 0){
+    out.push({
+      level: "info",
+      text: "SEM 이미지 하단을 " + S.result.cropBottom + "px 잘라내셨습니다. 맵도 <b>같은 프레임</b>으로 보고 " +
+        "똑같이 잘라 읽습니다. 맵에 정보바가 없다면, 맵을 SEM 이미지와 같은 프레임(정보바 포함)으로 저장해 주세요."
+    });
+  }
+  return out;
+}
+function warningsHTML(list){
+  if (!list.length) return "";
+  return '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">' +
+    list.map(function(w){
+      var c = w.level === "bad" ? "var(--critical)" : w.level === "warn" ? "var(--serious)" : "var(--accent)";
+      return '<div class="callout" style="border-left-color:' + c + '">' + w.text + '</div>';
+    }).join("") + '</div>';
+}
 function renderMapList(){
-  var host=document.getElementById("m-list");
+  var host = document.getElementById("m-list");
   if (!MAPS.items.length){
     host.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">아직 올린 맵이 없습니다. 원소 맵을 3장 이상 올려야 조성 비율이 의미를 갖습니다.</p>';
   } else {
     host.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + MAPS.items.map(function(it,i){
-      return '<div style="display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:7px 10px;background:var(--surface-2)">'+
+      var g = mapGeometry(it);
+      var off = g && g.diff > 0.02;
+      return '<div style="display:flex;gap:10px;align-items:center;border:1px solid ' +
+          (off ? 'var(--critical)' : 'var(--line)') + ';border-radius:4px;padding:7px 10px;background:var(--surface-2)">'+
         '<img src="'+it.url+'" alt="" width="34" height="34" style="width:34px;height:34px;object-fit:cover;border-radius:3px;border:1px solid var(--line-2)">'+
-        '<div class="mono" style="flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(it.name)+'</div>'+
+        '<div style="flex:1;min-width:0">' +
+          '<div class="mono" style="font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(it.name)+'</div>' +
+          (g ? '<div class="mono" style="font-size:10.5px;color:'+(off?'var(--critical)':'var(--ink-3)')+'">' +
+                 g.mw + '×' + g.mh +
+                 (off ? ' · 비율 다름 (SEM ' + g.sw + '×' + g.sh + ')' : '') + '</div>' : '') +
+        '</div>'+
         '<select data-i="'+i+'" class="m-el" style="width:104px">'+symbolOptions(it.el)+'</select>'+
         '<button class="btn m-del" data-i="'+i+'" type="button" style="padding:4px 8px">삭제</button></div>';
-    }).join("") + '</div>';
+    }).join("") + '</div>' + warningsHTML(mapWarnings());
     host.querySelectorAll(".m-el").forEach(function(sel){
       sel.addEventListener("change", function(){
         MAPS.items[+sel.dataset.i].el = sel.value;
-        updateMapRunState();
+        renderMapList();
       });
     });
     host.querySelectorAll(".m-del").forEach(function(b){
@@ -1911,13 +1974,16 @@ function computeMaps(){
   var R = S.result;
   if (!R || !MAPS.items.length) return;
   var W=R.W, H=R.H, per={}, i, k;
+  // 맵은 SEM 이미지와 같은 프레임으로 보고, 자르기 전 전체 크기에 맞춰 그린 뒤
+  // 위쪽 분석 영역만 읽는다. 잘라낸 정보바까지 눌러 넣으면 위치가 어긋난다.
+  var fullH = S.img ? S.img.height : H;
   R.props.forEach(function(p){ per[p.id] = {}; });
-  var c=document.createElement("canvas"); c.width=W; c.height=H;
+  var c=document.createElement("canvas"); c.width=W; c.height=fullH;
   var cx=c.getContext("2d",{willReadFrequently:true});
   MAPS.items.forEach(function(it){
     if (!it.el) return;
-    cx.clearRect(0,0,W,H);
-    cx.drawImage(it.img, 0, 0, W, H);
+    cx.clearRect(0,0,W,fullH);
+    cx.drawImage(it.img, 0, 0, W, fullH);
     var d=cx.getImageData(0,0,W,H).data;
     var sums={}, cnts={}, bgSum=0, bgN=0;
     for (i=0;i<W*H;i++){
@@ -1929,7 +1995,6 @@ function computeMaps(){
     it.bg = bgN ? bgSum/bgN : 0;
     R.props.forEach(function(p){
       var m = cnts[p.id] ? sums[p.id]/cnts[p.id] : 0;
-      // 입자 밖 평균 세기를 빼 바탕 잡음을 덜어낸다
       per[p.id][it.el] = Math.max(0, m - it.bg);
     });
   });
@@ -1946,9 +2011,12 @@ function computeMaps(){
   });
   MAPS.result = made ? out : null;
   var nEl = MAPS.items.filter(function(it){return it.el}).length;
+  var warn = mapWarnings().filter(function(w){ return w.level !== "info"; });
   setParseMsg(made
-    ? "<b>맵 "+nEl+"종으로 입자 "+made+"개의 조성을 추정했습니다.</b> 세기 기반 반정량 값이며, 통합 결과 탭에서 형상과 함께 볼 수 있습니다."
+    ? "<b>맵 "+nEl+"종으로 입자 "+made+"개의 조성을 추정했습니다.</b> 세기 기반 반정량 값이며, 통합 결과 탭에서 형상과 함께 볼 수 있습니다." +
+      (warn.length ? " 다만 위의 경고를 먼저 확인해 주세요." : "")
     : "맵에서 입자 영역의 세기를 얻지 못했습니다. 맵이 SEM 이미지와 같은 시야인지 확인해 주세요.", made?null:"bad");
+  renderMapList();
   renderUnified(); renderReport();
 }
 
