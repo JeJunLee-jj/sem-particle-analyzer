@@ -60,7 +60,7 @@ var Store = {
 };
 
 /* ---------- 레코드 만들기 ---------- */
-var SRC_CODE = {"맵":"map", "지점":"point"};
+var SRC_MAP = "맵";
 function buildRecord(name){
   var S = A.S;
   if (!S.result || !S.result.props.length) return null;
@@ -73,13 +73,17 @@ function buildRecord(name){
       r.p.id, A.CLS.indexOf(r.p.cls),
       round(r.p.eqd,3), round(r.p.feret,3), r.p.area, round(r.p.perim,3),
       round(r.p.circ,4), round(r.p.sol,4), round(r.p.ar,4),
-      r.comp ? (SRC_CODE[r.src]||"") : "",
+      r.comp ? (r.src === SRC_MAP ? "map" : "point") : "",
       r.v1 ? (r.v1.indexOf("Fe")===0?"Fe":r.v1.indexOf("Al")===0?"Al":r.v1.indexOf("Ti")===0?"Ti":"none") : "",
       r.v2 ? A.CLS2.indexOf(r.v2) : -1
     ];
     els.forEach(function(e){
       base.push(r.comp && r.comp.raw[e] != null ? round(Number(r.comp.raw[e]),3) : "");
     });
+    // 원소 뒤에 덧붙인다 — readRow가 els 개수로 위치를 잡으므로 기존 인덱스는 그대로다
+    base.push(r.nSpots || (r.comp ? 1 : 0));
+    base.push(r.comp && r.comp.spreadMax ? r.comp.spreadMax.el : "");
+    base.push(r.comp && r.comp.spreadMax ? round(r.comp.spreadMax.value, 2) : "");
     return base;
   });
   var thumb = "";
@@ -117,10 +121,14 @@ function readRow(rec, row){
     src: row[9], v1: row[10], v2: row[11] >= 0 ? A.CLS2[row[11]] : null,
     comp: {}
   };
+  var nEl = (rec.els||[]).length;
   (rec.els||[]).forEach(function(e,i){
     var v = row[12+i];
     if (v !== "" && v != null) o.comp[e] = Number(v);
   });
+  o.nSpots = Number(row[12+nEl]) || 0;
+  o.spreadEl = row[13+nEl] || "";
+  o.spreadPp = row[14+nEl] === "" || row[14+nEl] == null ? "" : Number(row[14+nEl]);
   return o;
 }
 function allRows(){
@@ -546,7 +554,8 @@ function exportCSV(){
   var els=Object.keys(elSet);
   var head=["field","saved_at","image","um_per_px","particle_id","shape_class",
             "eq_diameter_px","feret_px","area_px2","perimeter_px",
-            "circularity","solidity","aspect_ratio","comp_source","v1","v2"].concat(els);
+            "circularity","solidity","aspect_ratio","comp_source","v1","v2",
+            "n_spots","max_spread_element","max_spread_pp"].concat(els);
   var byId={};
   FIELDS.forEach(function(f){ byId[f.id]=f; });
   var out=[head];
@@ -554,7 +563,8 @@ function exportCSV(){
     var f=byId[r.fieldId]||{};
     out.push([r.field, f.savedAt||"", f.imageName||"", r.umPerPx==null?"":r.umPerPx,
       r.id, r.cls, r.eqd, r.feret, r.area, r.perim, r.circ, r.sol, r.ar,
-      r.src||"", r.v1||"", r.v2||""].concat(els.map(function(e){
+      r.src||"", r.v1||"", r.v2||"",
+      r.nSpots||"", r.spreadEl||"", r.spreadPp===""?"":r.spreadPp].concat(els.map(function(e){
         return r.comp[e]==null ? "" : r.comp[e];
       })));
   });
@@ -587,7 +597,7 @@ async function importCSV(file){
   var ix = {}; head.forEach(function(h,i){ ix[h]=i; });
   var fixed = ["field","saved_at","image","um_per_px","particle_id","shape_class","eq_diameter_px",
                "feret_px","area_px2","perimeter_px","circularity","solidity","aspect_ratio",
-               "comp_source","v1","v2"];
+               "comp_source","v1","v2","n_spots","max_spread_element","max_spread_pp"];
   var els = head.filter(function(h){ return fixed.indexOf(h) < 0 && h; });
   var groups = {};
   table.slice(1).forEach(function(r){
@@ -601,6 +611,10 @@ async function importCSV(file){
       Number(r[ix.perimeter_px])||0, Number(r[ix.circularity])||0, Number(r[ix.solidity])||0,
       Number(r[ix.aspect_ratio])||0, r[ix.comp_source]||"", r[ix.v1]||"", v2i];
     els.forEach(function(e){ var v=r[ix[e]]; base.push(v===""||v==null ? "" : Number(v)); });
+    base.push(ix.n_spots != null && r[ix.n_spots] ? Number(r[ix.n_spots]) : "");
+    base.push(ix.max_spread_element != null ? (r[ix.max_spread_element]||"") : "");
+    base.push(ix.max_spread_pp != null && r[ix.max_spread_pp] !== "" && r[ix.max_spread_pp] != null
+              ? Number(r[ix.max_spread_pp]) : "");
     groups[key].rows.push(base);
   });
   var keys = Object.keys(groups);
