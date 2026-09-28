@@ -371,12 +371,53 @@ function regionProps(lab, count, W, H){
   return out;
 }
 
+/* ---------- 12b. 하단 정보바 자동 감지 ----------
+   정보바는 소프트웨어가 그려 넣은 띠라 배경이 한 가지 값으로 평평하다.
+   반면 사진 영역은 검출기 잡음 때문에 결코 평평하지 않다. 그 차이로 가른다.
+   (밝기 차나 경계선으로 찾으면 스케일바 같은 띠 안의 도형을 경계로 오인한다.) */
+function rowFlatness(gray, W, y){
+  var hist = new Uint32Array(256), x, v;
+  for (x = 0; x < W; x++){
+    v = gray[y*W + x] | 0;
+    if (v < 0) v = 0; else if (v > 255) v = 255;
+    hist[v]++;
+  }
+  var half = W >> 1, acc = 0, med = 0;
+  for (v = 0; v < 256; v++){ acc += hist[v]; if (acc >= half){ med = v; break; } }
+  var lo = med > 2 ? med - 2 : 0, hi = med < 253 ? med + 2 : 255, cnt = 0;
+  for (v = lo; v <= hi; v++) cnt += hist[v];
+  return cnt / W;
+}
+function detectInfoBar(gray, W, H){
+  var maxBar = Math.floor(H * 0.35);
+  if (maxBar < 6 || W < 8) return 0;
+  var FLAT = 0.5;
+  if (rowFlatness(gray, W, H-1) < FLAT) return 0;     // 맨 아랫줄이 평평하지 않으면 띠가 없다
+  var y = H - 1;
+  while (y > H - maxBar && rowFlatness(gray, W, y-1) >= FLAT) y--;
+  var bar = H - y;
+  if (bar < 6) return 0;
+  var above = 0, n = 0;
+  for (var k = (y > 6 ? y - 6 : 0); k < y; k++){ above += rowFlatness(gray, W, k); n++; }
+  if (!n) return 0;
+  above /= n;
+  if (above > FLAT - 0.15) return 0;                  // 위쪽도 평평하면 사진의 일부다
+  return bar;
+}
+
 /* ---------- 13. 전체 파이프라인 ---------- */
 function analyze(imgData, opt){
   var W = imgData.width, H0 = imgData.height;
-  var cropBottom = Math.max(0, Math.min(H0-10, Math.round(H0*(opt.cropBottom||0))));
-  var H = H0 - cropBottom;
   var gAll = toGray(imgData);
+  var autoCropPx = 0, cropBottom;
+  if (opt.autoCrop){
+    autoCropPx = detectInfoBar(gAll, W, H0);
+    cropBottom = Math.min(autoCropPx, H0 - 10);
+  } else {
+    cropBottom = Math.max(0, Math.min(H0-10, Math.round(H0*(opt.cropBottom||0))));
+  }
+  if (cropBottom < 0) cropBottom = 0;
+  var H = H0 - cropBottom;
   var gray = cropBottom ? gAll.subarray(0, W*H) : gAll;
 
   var blurred = gaussian(gray, W, H, opt.sigma);
@@ -385,16 +426,28 @@ function analyze(imgData, opt){
   if (opt.fillHoles) bw = fillHoles(bw, W, H);
 
   var L0 = label(bw, W, H);
-  var count = filterRegions(L0.lab, L0.count, W, H, opt.minArea, opt.dropBorder);
+  // 입자 하나만 남길 때는 가장자리에 걸렸다고 버리면 안 된다 — 그 하나가 사라진다
+  var dropBorder = opt.dropBorder && !opt.singleParticle;
+  var count = filterRegions(L0.lab, L0.count, W, H, opt.minArea, dropBorder);
   var split = splitTouching(L0.lab, count, W, H, opt.splitFrac);
   count = filterRegions(split.lab, split.count, W, H, opt.minArea, false);
 
+  if (opt.singleParticle && count > 1){
+    var area = new Int32Array(count+1), i2;
+    for (i2 = 0; i2 < W*H; i2++) if (split.lab[i2]) area[split.lab[i2]]++;
+    var keep = 1;
+    for (i2 = 1; i2 <= count; i2++) if (area[i2] > area[keep]) keep = i2;
+    for (i2 = 0; i2 < W*H; i2++) split.lab[i2] = (split.lab[i2] === keep) ? 1 : 0;
+    count = 1;
+  }
+
   var props = regionProps(split.lab, count, W, H);
-  return {W:W, H:H, cropBottom:cropBottom, threshold:thr, lab:split.lab, props:props, dist:split.dist};
+  return {W:W, H:H, cropBottom:cropBottom, autoCropPx:autoCropPx,
+          threshold:thr, lab:split.lab, props:props, dist:split.dist};
 }
 
 global.IP = {
   toGray:toGray, gaussian:gaussian, otsu:otsu, binarize:binarize, fillHoles:fillHoles,
-  label:label, edt:edt, splitTouching:splitTouching, regionProps:regionProps, analyze:analyze
+  label:label, edt:edt, detectInfoBar:detectInfoBar, splitTouching:splitTouching, regionProps:regionProps, analyze:analyze
 };
 })(window);

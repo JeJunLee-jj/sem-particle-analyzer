@@ -198,6 +198,9 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
       <div class="panel">
         <div class="hd"><h2>분할 조건</h2></div>
         <div class="bd ctrl-group">
+          <label class="chk"><input type="checkbox" id="s-single"> <b>입자 하나만</b> — 가장 큰 물체 하나만 남김</label>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:-6px">입자 한 개를 찍은 사진에 쓰세요. 주변 부스러기와 글자는 무시됩니다.</div>
+          <label class="chk"><input type="checkbox" id="s-autocrop" checked> 하단 정보바 자동 제외</label>
           <label class="chk"><input type="checkbox" id="s-bright" checked> 입자가 배경보다 밝음</label>
           <label class="chk"><input type="checkbox" id="s-auto" checked> Otsu 자동 임계</label>
           <div class="ctrl">
@@ -218,8 +221,8 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
           </div>
           <div style="font-size:11px;color:var(--ink-3);margin-top:-6px">1.00 = 분리 안 함. 낮출수록 맞닿은 입자를 적극적으로 쪼갭니다.</div>
           <div class="ctrl">
-            <div class="lab"><label for="s-crop">하단 정보바 제외</label><b id="s-crop-v">0%</b></div>
-            <input type="range" id="s-crop" min="0" max="0.3" step="0.01" value="0">
+            <div class="lab"><label for="s-crop">하단 정보바 직접 지정</label><b id="s-crop-v">자동</b></div>
+            <input type="range" id="s-crop" min="0" max="0.3" step="0.01" value="0" disabled>
           </div>
           <label class="chk"><input type="checkbox" id="s-fill" checked> 내부 구멍 채우기</label>
           <label class="chk"><input type="checkbox" id="s-border" checked> 화면 가장자리에 걸친 입자 제외</label>
@@ -608,7 +611,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 <div class="busy" id="busy" hidden>분석 중…</div>
 
-<script src="ip.js?v=9"></script>
+<script src="ip.js?v=10"></script>
 <script>
 (function(){
 "use strict";
@@ -693,6 +696,7 @@ var S = {
   bright:true, fill:true, border:true,
   ar:2.8, sol:0.72, circ:0.80, arsph:1.30,
   view:"overlay", numbers:false, selected:null,
+  single:false, autoCrop:true,
   umPerPx:null, calibMode:false, calibPts:[], calibPx:0,
   result:null
 };
@@ -744,7 +748,8 @@ function runShape(){
         S.result = IP.analyze(S.img, {
           sigma:S.sigma, autoThreshold:S.auto, threshold:S.thr, bright:S.bright,
           fillHoles:S.fill, minArea:S.minArea, dropBorder:S.border,
-          splitFrac:S.splitFrac, cropBottom:S.cropBottom
+          splitFrac:S.splitFrac, cropBottom:S.cropBottom,
+          autoCrop:S.autoCrop, singleParticle:S.single
         });
         S.result.props.forEach(function(p){ p.cls = classify(p); });
         if (S.auto){
@@ -752,6 +757,9 @@ function runShape(){
           document.getElementById("s-thr").value = S.thr;
         }
         document.getElementById("s-thr-v").textContent = Math.round(S.result.threshold);
+        document.getElementById("s-crop-v").textContent = S.autoCrop
+          ? (S.result.cropBottom ? "자동 " + S.result.cropBottom + "px" : "자동 · 없음")
+          : Math.round(S.cropBottom*100) + "%";
         renderShape();
       } catch(err){
         console.error(err);
@@ -1372,13 +1380,31 @@ bindRange("s-split",S,"splitFrac",2,debouncedRun);
 bindRange("s-thr",S,"thr",0,function(){ if(!S.auto) debouncedRun(); });
 bindRange("s-crop",S,"cropBottom",2,debouncedRun);
 document.getElementById("s-crop").addEventListener("input",function(e){
-  document.getElementById("s-crop-v").textContent=Math.round(e.target.value*100)+"%";
+  if (!S.autoCrop) document.getElementById("s-crop-v").textContent=Math.round(e.target.value*100)+"%";
 });
 bindRange("s-ar",S,"ar",2,reclassify);
 bindRange("s-sol",S,"sol",2,reclassify);
 bindRange("s-circ",S,"circ",2,reclassify);
 bindRange("s-arsph",S,"arsph",2,reclassify);
 
+function rememberOpt(k, v){ try{ localStorage.setItem("sem-opt-"+k, v?"1":"0"); }catch(e){} }
+function recallOpt(k){ try{ return localStorage.getItem("sem-opt-"+k); }catch(e){ return null; } }
+document.getElementById("s-single").addEventListener("change",function(e){
+  S.single=e.target.checked; rememberOpt("single", S.single); runShape();
+});
+document.getElementById("s-autocrop").addEventListener("change",function(e){
+  S.autoCrop=e.target.checked;
+  rememberOpt("autocrop", S.autoCrop);
+  document.getElementById("s-crop").disabled = S.autoCrop;
+  if (!S.autoCrop) document.getElementById("s-crop-v").textContent = Math.round(S.cropBottom*100)+"%";
+  runShape();
+});
+(function(){
+  var a = recallOpt("single"), b = recallOpt("autocrop");
+  if (a === "1"){ S.single = true; document.getElementById("s-single").checked = true; }
+  if (b === "0"){ S.autoCrop = false; document.getElementById("s-autocrop").checked = false;
+                  document.getElementById("s-crop").disabled = false; }
+})();
 document.getElementById("s-auto").addEventListener("change",function(e){
   S.auto=e.target.checked;
   document.getElementById("s-thr").disabled=S.auto;
@@ -2461,6 +2487,6 @@ renderReport();
 loadImage("example-sem.png","합성 예제 SEM 필드",true);
 })();
 </script>
-<script src="accum.js?v=9"></script>
+<script src="accum.js?v=10"></script>
 </body>
 </html>
