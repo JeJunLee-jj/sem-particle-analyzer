@@ -187,9 +187,9 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
         <div class="bd ctrl-group">
           <div class="drop" id="s-drop" role="button" tabindex="0">
             <b>SEM 이미지 올리기</b>
-            클릭 · 드래그 · 이 화면에서 Ctrl+V
+            클릭 · 드래그 · 이 화면에서 Ctrl+V<br>PNG · JPEG · BMP · TIFF
           </div>
-          <input type="file" id="s-file" accept="image/*" hidden>
+          <input type="file" id="s-file" accept="image/*,.tif,.tiff" hidden>
           <div id="s-fileinfo" class="mono" style="font-size:11px;color:var(--ink-3)"></div>
           <button class="btn" id="s-example" type="button">예제 이미지로 되돌리기</button>
         </div>
@@ -385,7 +385,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
               <b>원소 맵 이미지 올리기 (여러 장 한 번에)</b>
               클릭 · 드래그 · 이 화면에서 Ctrl+V · 파일명에서 원소를 추측합니다 (예: Fe.png, map_Si_K.jpg)
             </div>
-            <input type="file" id="m-file" accept="image/*" multiple hidden>
+            <input type="file" id="m-file" accept="image/*,.tif,.tiff" multiple hidden>
             <div id="m-list" style="margin-top:12px"></div>
             <div class="btnrow" style="margin-top:12px">
               <button class="btn primary" id="m-run" type="button" disabled>입자별 조성 계산</button>
@@ -411,7 +411,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
               <b>EDS 정량표 사진 올리기</b>
               클릭 · 드래그 · 이 화면에서 Ctrl+V
             </div>
-            <input type="file" id="e-file" accept="image/*" hidden>
+            <input type="file" id="e-file" accept="image/*,.tif,.tiff" hidden>
             <div id="e-photo-area" hidden style="margin-top:14px">
               <div class="two" style="align-items:start">
                 <div style="display:flex;flex-direction:column;gap:8px">
@@ -608,7 +608,7 @@ svg text{font-family:var(--mono);fill:var(--ink-2)}
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 <div class="busy" id="busy" hidden>분석 중…</div>
 
-<script src="ip.js?v=8"></script>
+<script src="ip.js?v=9"></script>
 <script>
 (function(){
 "use strict";
@@ -697,6 +697,7 @@ var S = {
   result:null
 };
 var MAXPIX = 3.2e6;
+var pendingNote = null;   // TIFF 변환 같은 한 줄 안내
 
 var canvas=document.getElementById("s-canvas"), wrap=document.getElementById("s-wrap");
 var srcCanvas=document.createElement("canvas"), srcCtx=srcCanvas.getContext("2d", {willReadFrequently:true});
@@ -713,8 +714,10 @@ function loadImage(src, name, isExample){
     S.img = srcCtx.getImageData(0,0,aw,ah);
     S.imgName = name; S.isExample = !!isExample;
     S.selected=null; S.calibPts=[];
-    document.getElementById("s-fileinfo").textContent =
-      name + " · " + w + "×" + h + "px" + (f<1 ? " (분석 해상도 " + aw + "×" + ah + ")" : "");
+    document.getElementById("s-fileinfo").innerHTML =
+      esc(name) + " · " + w + "×" + h + "px" + (f<1 ? " (분석 해상도 " + aw + "×" + ah + ")" : "") +
+      (pendingNote ? ' <span class="flag ok">' + pendingNote + '</span>' : "");
+    pendingNote = null;
     runShape();
   };
   im.onerror = function(){
@@ -1394,11 +1397,129 @@ document.querySelectorAll('.seg button[data-view]').forEach(function(b){
 });
 
 var fileInput=document.getElementById("s-file"), drop=document.getElementById("s-drop");
-function handleFile(f){
-  if (!f || !/^image\//.test(f.type)) return;
-  var url=URL.createObjectURL(f);
-  loadImage(url, f.name, false);
+/* ---- 이미지 파일 해석 ----
+   SEM·EDS 소프트웨어는 TIFF로 내보내는 경우가 많은데 브라우저는 TIFF를 못 연다.
+   확장자나 MIME은 틀릴 수 있으므로 앞부분 바이트로 형식을 판별하고,
+   TIFF면 직접 디코딩해서 넘긴다. 실패하면 무엇이 문제인지 분명히 알린다. */
+var FORMAT_NAMES = {png:"PNG", jpeg:"JPEG", gif:"GIF", bmp:"BMP", webp:"WebP",
+                    tiff:"TIFF", bigtiff:"BigTIFF", svg:"SVG", unknown:"알 수 없는 형식"};
+var TIFF_LIB = "https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js";
+var scriptCache = {};
+
+function sniffFormat(file){
+  return file.slice(0, 16).arrayBuffer().then(function(buf){
+    var b = new Uint8Array(buf);
+    function m(){
+      for (var i = 0; i < arguments.length; i++) if (b[i] !== arguments[i]) return false;
+      return true;
+    }
+    if (m(0x89,0x50,0x4E,0x47)) return "png";
+    if (m(0xFF,0xD8,0xFF)) return "jpeg";
+    if (m(0x47,0x49,0x46,0x38)) return "gif";
+    if (m(0x42,0x4D)) return "bmp";
+    if (m(0x52,0x49,0x46,0x46) && b[8]===0x57 && b[9]===0x45 && b[10]===0x42 && b[11]===0x50) return "webp";
+    if (m(0x49,0x49,0x2A,0x00) || m(0x4D,0x4D,0x00,0x2A)) return "tiff";
+    if (m(0x49,0x49,0x2B,0x00) || m(0x4D,0x4D,0x00,0x2B)) return "bigtiff";
+    if (m(0x3C,0x3F,0x78,0x6D) || m(0x3C,0x73,0x76,0x67)) return "svg";
+    return "unknown";
+  }).catch(function(){ return "unknown"; });
 }
+function loadScriptOnce(src){
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise(function(resolve, reject){
+    var s = document.createElement("script");
+    s.src = src;
+    s.onload = function(){ resolve(); };
+    s.onerror = function(){ scriptCache[src] = null; reject(new Error("script")); };
+    document.head.appendChild(s);
+  });
+  return scriptCache[src];
+}
+/* 16비트 회색조는 상위 바이트만 취하면 정보가 날아간다(값 범위가 좁으면 전부 검게 된다).
+   실제 최소·최대에 맞춰 0~255로 편다. 대비가 바뀌므로 화면에 그 사실을 알린다. */
+function gray16ToRGBA(ifd, little){
+  var d = ifd.data;
+  if (!d) return null;
+  var n = (d.length / 2) | 0;
+  if (n !== ifd.width * ifd.height) return null;
+  var mn = 65535, mx = 0, i, v;
+  for (i = 0; i < n; i++){
+    v = little ? (d[i*2] | (d[i*2+1] << 8)) : ((d[i*2] << 8) | d[i*2+1]);
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  if (mx <= mn) return null;
+  var rgba = new Uint8ClampedArray(n * 4), scale = 255 / (mx - mn), g;
+  for (i = 0; i < n; i++){
+    v = little ? (d[i*2] | (d[i*2+1] << 8)) : ((d[i*2] << 8) | d[i*2+1]);
+    g = (v - mn) * scale;
+    rgba[i*4] = g; rgba[i*4+1] = g; rgba[i*4+2] = g; rgba[i*4+3] = 255;
+  }
+  return rgba;
+}
+function tiffToBlob(file){
+  var deep = false;
+  return loadScriptOnce(TIFF_LIB)
+    .then(function(){ return file.arrayBuffer(); })
+    .then(function(buf){
+      var ifds = window.UTIF.decode(buf);
+      if (!ifds || !ifds.length) throw new Error("no page");
+      window.UTIF.decodeImage(buf, ifds[0], ifds);
+      var ifd = ifds[0];
+      var head = new Uint8Array(buf, 0, 2);
+      var little = head[0] === 0x49;
+      var bps = ifd.t258 ? (ifd.t258[0] || 8) : 8;
+      var spp = ifd.t277 ? (ifd.t277[0] || 1) : 1;
+      var rgba = null;
+      if (bps === 16 && spp === 1){
+        rgba = gray16ToRGBA(ifd, little);
+        if (rgba) deep = true;
+      }
+      if (!rgba) rgba = window.UTIF.toRGBA8(ifd);
+      var w = ifd.width, h = ifd.height;
+      if (!w || !h || !rgba || !rgba.length) throw new Error("empty");
+      var c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      var ctx = c.getContext("2d");
+      var img = ctx.createImageData(w, h);
+      img.data.set(rgba);
+      ctx.putImageData(img, 0, 0);
+      return new Promise(function(res, rej){
+        c.toBlob(function(b){ b ? res({blob:b, deep:deep}) : rej(new Error("toBlob")); }, "image/png");
+      });
+    });
+}
+/* {file, url, note} 로 resolve, 못 읽으면 {error} */
+function prepareImage(file){
+  if (!file) return Promise.resolve({error:"파일을 읽지 못했습니다."});
+  return sniffFormat(file).then(function(fmt){
+    if (fmt === "tiff" || fmt === "bigtiff"){
+      return tiffToBlob(file).then(function(r){
+        var conv = new File([r.blob], file.name.replace(/\.[^.]+$/, "") + ".png", {type:"image/png"});
+        return {file:conv, url:URL.createObjectURL(conv),
+                note: r.deep ? "16비트 TIFF를 대비 조정해 읽었습니다" : "TIFF를 변환해 읽었습니다"};
+      }).catch(function(){
+        return {error:"이 " + FORMAT_NAMES[fmt] + " 파일은 열지 못했습니다. 압축되었거나 특수한 형태일 수 있습니다. " +
+                      "계측 소프트웨어에서 <b>PNG</b>나 <b>JPEG</b>로 다시 저장해 주세요."};
+      });
+    }
+    if (fmt === "unknown"){
+      return {error:"이미지 파일로 보이지 않습니다 (" + esc(file.name) + "). PNG·JPEG·BMP·TIFF 파일을 올려 주세요."};
+    }
+    return {file:file, url:URL.createObjectURL(file), note:null};
+  });
+}
+function handleFile(f){
+  if (!f) return;
+  var info = document.getElementById("s-fileinfo");
+  info.innerHTML = '<span class="mono">불러오는 중…</span>';
+  prepareImage(f).then(function(r){
+    if (r.error){ info.innerHTML = '<span class="flag bad">읽기 실패</span> ' + r.error; return; }
+    pendingNote = r.note;
+    loadImage(r.url, f.name, false);
+  });
+}
+
 drop.addEventListener("click",function(){ fileInput.click(); });
 drop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); } });
 fileInput.addEventListener("change",function(e){ handleFile(e.target.files[0]); });
@@ -1560,9 +1681,16 @@ function photoRouteActive(){
   return !!(b && b.getAttribute("aria-pressed")==="true" && !document.getElementById("p-e").hidden);
 }
 function setPhoto(f){
-  if (!f || !/^image\//.test(f.type)) return;
+  if (!f) return;
+  eState.innerHTML = '<span class="mono">불러오는 중…</span>';
+  prepareImage(f).then(function(r){
+    if (r.error){ eState.innerHTML = '<span class="flag bad">읽기 실패</span> ' + r.error; return; }
+    applyPhoto(r.file, r.url, r.note);
+  });
+}
+function applyPhoto(f, url, note){
   if (PHOTO.url) URL.revokeObjectURL(PHOTO.url);
-  PHOTO.file=f; PHOTO.url=URL.createObjectURL(f); PHOTO.zoom=false;
+  PHOTO.file=f; PHOTO.url=url; PHOTO.zoom=false;
   var img=document.getElementById("e-photo-img");
   img.src=PHOTO.url; img.style.width="100%";
   document.getElementById("e-photo-area").hidden=false;
@@ -1960,18 +2088,21 @@ function updateMapRunState(){
     : (MAPS.items.length && !allTagged ? "각 맵의 원소를 골라주세요" : "입자별 조성 계산");
 }
 function addMapFiles(files){
-  var list = Array.prototype.slice.call(files||[]).filter(function(f){ return /^image\//.test(f.type); });
-  var pending = list.length;
+  var list = Array.prototype.slice.call(files||[]);
+  var pending = list.length, failed = [];
   if (!pending) return;
+  function done(){ if (!--pending){ renderMapList(); if (failed.length) toast("읽지 못한 파일: <b>" + failed.map(esc).join(", ") + "</b> — PNG나 JPEG로 저장해 주세요."); } }
   list.forEach(function(f){
-    var url = URL.createObjectURL(f);
-    var im = new Image();
-    im.onload = function(){
-      MAPS.items.push({name:f.name, el:guessElement(f.name), img:im, url:url});
-      if (!--pending) renderMapList();
-    };
-    im.onerror = function(){ if (!--pending) renderMapList(); };
-    im.src = url;
+    prepareImage(f).then(function(r){
+      if (r.error){ failed.push(f.name); done(); return; }
+      var im = new Image();
+      im.onload = function(){
+        MAPS.items.push({name:f.name, el:guessElement(f.name), img:im, url:r.url});
+        done();
+      };
+      im.onerror = function(){ failed.push(f.name); done(); };
+      im.src = r.url;
+    });
   });
 }
 function computeMaps(){
@@ -2330,6 +2461,6 @@ renderReport();
 loadImage("example-sem.png","합성 예제 SEM 필드",true);
 })();
 </script>
-<script src="accum.js?v=8"></script>
+<script src="accum.js?v=9"></script>
 </body>
 </html>
